@@ -1,0 +1,59 @@
+= CLAUDE.adoc
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+== Project Overview
+
+Qt6 C++ GUI application for converting DIN 18599 (German energy standard) usage profiles into weekly schedules for dynamic building energy simulation. Users load a CSV of norm data, select a usage profile, and edit hourly schedules for three categories: persons (occupancy), equipment (load), and lighting (availability). Projects are saved as XML `.ic18599` files.
+
+UI language is English.
+
+== Build System
+
+Uses *qmake* (Qt 6, C++17). The session file aggregates three sub-projects with dependencies:
+
+[source,bash]
+----
+# Build entire project (from repo root)
+qmake6 InputConvertion18599ForSimulation-session.pro
+make
+
+# Build output lands in bin/debug/ or bin/release/
+----
+
+Sub-project build order (enforced by .depends):
+
+1. `externals/IBK/` — utility library (file I/O, strings, math, messaging)
+2. `externals/TiCPP/` — TinyXML C++ wrapper (depends on IBK)
+3. `InputConvertion18599ForSimulation/` — main application (depends on both)
+
+Global build configuration lives in `externals/IBK/IBK.pri` (C++17, platform flags, sanitizer/OpenMP/gprof options) and `externals/IBK/CONFIG.pri` (optional feature toggles, all commented out by default).
+
+== Architecture
+
+----
+IC18599MainWindow          — QMainWindow, file I/O, profile switching, tab management
+├─ IC18599NormDataWidget   — Tab 0: loads semicolon-separated CSV, read-only table display
+├─ IC18599ScheduleEditWidget (×3) — Tabs 1-3: weekly schedule editor per category
+│  └─ IC18599DayProfileWidget     — Custom QPainter widget: 7×24h bar chart with click/drag
+├─ QPlainTextEdit          — Tab 4: log output
+└─ IC18599Project          — Data model: profiles → {person,equipment,lighting} DailyCycleGroups
+----
+
+*Data flow:* CSV → NormDataWidget extracts profile names → user selects profile → ScheduleEditWidgets manage day-cycle groups (sets of weekdays sharing a 24-hour value pattern) → Project serializes to XML via TiCPP.
+
+*Key data structures in IC18599Project:*
+
+* `DailyCycleGroup`: a `set<int>` of days (0=Mo–6=Su) + `vector<double>` of 24 hourly percentage values
+* `ProfileScheduleData`: three vectors of DailyCycleGroups (persons, equipment, lighting)
+* `m_profiles`: `QMap<QString, ProfileScheduleData>` keyed by profile name
+
+== File Formats
+
+* *Input CSV* (`data/DIN18599_Nutzungsprofile.csv`): semicolon-delimited, 41 usage profiles as columns, parameters as rows
+** Derived rows "Personenlast [W/m2]" and "Arbeitshilfen (Geräte) [W/m2]" are hidden from the table display (computed from Aktivität Personen / maximale Belegungsdichte and Geräteleistung / maximale Belegungsdichte respectively)
+* *Project files* (`.ic18599`): XML via TiCPP. CSV path stored relative to project file location. Contains profile schedules with day groups and 24 hourly values
+
+== No Automated Tests
+
+Testing is manual through the GUI. Sample data in `data/test2.ic18599`.
