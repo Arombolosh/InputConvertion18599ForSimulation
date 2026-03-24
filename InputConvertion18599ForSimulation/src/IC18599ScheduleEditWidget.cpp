@@ -11,7 +11,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 
-static const char* DAY_SHORT[] = {"Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"};
+static const char* DAY_SHORT[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
 IC18599ScheduleEditWidget::IC18599ScheduleEditWidget(const QString &title,
 													   const QColor &barColor,
@@ -62,7 +62,7 @@ void IC18599ScheduleEditWidget::setupUI(const QString &title, const QColor &barC
 
 	// --- Compact table (left) ---
 	m_tableWidget = new QTableWidget(24, 2, this);
-	m_tableWidget->setHorizontalHeaderLabels({tr("Zeit"), tr("[%]")});
+	m_tableWidget->setHorizontalHeaderLabels({tr("Time"), tr("[%]")});
 	m_tableWidget->horizontalHeader()->setStretchLastSection(true);
 	m_tableWidget->horizontalHeader()->setDefaultSectionSize(50);
 	m_tableWidget->setColumnWidth(0, 80);
@@ -100,7 +100,7 @@ void IC18599ScheduleEditWidget::setupUI(const QString &title, const QColor &barC
 
 	m_btnBackward = new QToolButton(this);
 	m_btnBackward->setArrowType(Qt::LeftArrow);
-	m_btnBackward->setToolTip(tr("Vorherige Gruppe"));
+	m_btnBackward->setToolTip(tr("Previous Group"));
 	navLayout->addWidget(m_btnBackward);
 
 	m_groupLabel = new QLabel(this);
@@ -113,7 +113,7 @@ void IC18599ScheduleEditWidget::setupUI(const QString &title, const QColor &barC
 
 	m_btnForward = new QToolButton(this);
 	m_btnForward->setArrowType(Qt::RightArrow);
-	m_btnForward->setToolTip(tr("Nächste Gruppe"));
+	m_btnForward->setToolTip(tr("Next Group"));
 	navLayout->addWidget(m_btnForward);
 
 	panelLayout->addLayout(navLayout);
@@ -124,13 +124,13 @@ void IC18599ScheduleEditWidget::setupUI(const QString &title, const QColor &barC
 
 	m_btnAdd = new QToolButton(this);
 	m_btnAdd->setText("+");
-	m_btnAdd->setToolTip(tr("Neue Gruppe erstellen"));
+	m_btnAdd->setToolTip(tr("Create New Group"));
 	m_btnAdd->setFixedSize(28, 28);
 	addDelLayout->addWidget(m_btnAdd);
 
 	m_btnDelete = new QToolButton(this);
 	m_btnDelete->setText("-");  // Unicode minus
-	m_btnDelete->setToolTip(tr("Aktuelle Gruppe löschen"));
+	m_btnDelete->setToolTip(tr("Delete Current Group"));
 	m_btnDelete->setFixedSize(28, 28);
 	addDelLayout->addWidget(m_btnDelete);
 
@@ -145,7 +145,7 @@ void IC18599ScheduleEditWidget::setupUI(const QString &title, const QColor &barC
 	panelLayout->addWidget(m_validLabel);
 
 	// Day checkboxes (vertical)
-	QGroupBox *dayGroup = new QGroupBox(tr("Tagestypen"), this);
+	QGroupBox *dayGroup = new QGroupBox(tr("Day Types"), this);
 	QVBoxLayout *dayGroupLayout = new QVBoxLayout(dayGroup);
 	dayGroupLayout->setSpacing(2);
 	dayGroupLayout->setContentsMargins(6, 10, 6, 6);
@@ -167,7 +167,7 @@ void IC18599ScheduleEditWidget::setupUI(const QString &title, const QColor &barC
 	panelLayout->addWidget(dayGroup);
 
 	// Hint label
-	QLabel *hint = new QLabel(tr("Mehrere Zellen markieren,\nZahl eingeben + Enter\n= Wert für alle."), this);
+	QLabel *hint = new QLabel(tr("Select multiple cells,\nenter a value + Enter\n= apply to all."), this);
 	hint->setStyleSheet("color: gray; font-size: 8pt;");
 	hint->setWordWrap(true);
 	panelLayout->addWidget(hint);
@@ -397,16 +397,16 @@ void IC18599ScheduleEditWidget::updateDayCheckboxes() {
 			if (assignedElsewhere) {
 				for (int g = 0; g < (int)m_groups.size(); ++g) {
 					if (m_groups[(size_t)g].m_days.count(d)) {
-						m_dayChecks[d]->setToolTip(tr("Zugewiesen an Gruppe %1").arg(g + 1));
+						m_dayChecks[d]->setToolTip(tr("Assigned to Group %1").arg(g + 1));
 						break;
 					}
 				}
 			}
 			else if (grp.m_days.count(d)) {
-				m_dayChecks[d]->setToolTip(tr("In aktueller Gruppe"));
+				m_dayChecks[d]->setToolTip(tr("In current group"));
 			}
 			else {
-				m_dayChecks[d]->setToolTip(tr("Nicht zugewiesen"));
+				m_dayChecks[d]->setToolTip(tr("Not assigned"));
 			}
 		}
 	}
@@ -415,7 +415,7 @@ void IC18599ScheduleEditWidget::updateDayCheckboxes() {
 
 
 void IC18599ScheduleEditWidget::updateGroupLabel() {
-	m_groupLabel->setText(tr("Gruppe %1/%2")
+	m_groupLabel->setText(tr("Group %1/%2")
 		.arg(m_currentGroupIdx + 1)
 		.arg(m_groups.size()));
 

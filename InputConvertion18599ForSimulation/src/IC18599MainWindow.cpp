@@ -18,7 +18,7 @@
 IC18599MainWindow::IC18599MainWindow(QWidget *parent) :
 	QMainWindow(parent)
 {
-	setWindowTitle(tr("DIN 18599 - Konvertierung für dynamische Simulation"));
+	setWindowTitle(tr("DIN 18599 - Conversion for Dynamic Simulation"));
 	resize(1200, 800);
 	setupUI();
 }
@@ -26,9 +26,9 @@ IC18599MainWindow::IC18599MainWindow(QWidget *parent) :
 
 void IC18599MainWindow::setupUI() {
 	// --- Toolbar with profile ComboBox ---
-	m_toolBar = addToolBar(tr("Profil"));
+	m_toolBar = addToolBar(tr("Profile"));
 	m_toolBar->setMovable(false);
-	m_toolBar->addWidget(new QLabel(tr("Profil: "), this));
+	m_toolBar->addWidget(new QLabel(tr("Profile: "), this));
 	m_profileComboBox = new QComboBox(this);
 	m_profileComboBox->setMinimumWidth(250);
 	m_profileComboBox->setEnabled(false);
@@ -42,26 +42,26 @@ void IC18599MainWindow::setupUI() {
 
 	// Tab 1: Norm data
 	m_normDataWidget = new IC18599NormDataWidget(this);
-	m_tabWidget->addTab(m_normDataWidget, tr("Eingangsdaten Norm"));
+	m_tabWidget->addTab(m_normDataWidget, tr("Norm Input Data"));
 
 	// Tab 2: Personen-Zeitplan
 	m_personScheduleWidget = new IC18599ScheduleEditWidget(
-		tr("Personen - Anwesenheitszeitplan"), QColor(70, 130, 180), this);
-	m_tabWidget->addTab(m_personScheduleWidget, tr("Zeitplan Personen"));
+		tr("Persons - Occupancy Schedule"), QColor(70, 130, 180), this);
+	m_tabWidget->addTab(m_personScheduleWidget, tr("Person Schedule"));
 	connect(m_personScheduleWidget, &IC18599ScheduleEditWidget::valuesChanged,
 			this, &IC18599MainWindow::onScheduleModified);
 
 	// Tab 3: Geräte-Zeitplan
 	m_equipmentScheduleWidget = new IC18599ScheduleEditWidget(
-		tr("Geräte - Auslastungszeitplan"), QColor(180, 120, 60), this);
-	m_tabWidget->addTab(m_equipmentScheduleWidget, tr("Zeitplan Geräte"));
+		tr("Equipment - Utilization Schedule"), QColor(180, 120, 60), this);
+	m_tabWidget->addTab(m_equipmentScheduleWidget, tr("Equipment Schedule"));
 	connect(m_equipmentScheduleWidget, &IC18599ScheduleEditWidget::valuesChanged,
 			this, &IC18599MainWindow::onScheduleModified);
 
 	// Tab 4: Beleuchtung-Zeitplan
 	m_lightingScheduleWidget = new IC18599ScheduleEditWidget(
-		tr("Beleuchtung - Verfügbarkeitszeitplan"), QColor(200, 180, 50), this);
-	m_tabWidget->addTab(m_lightingScheduleWidget, tr("Zeitplan Beleuchtung"));
+		tr("Lighting - Availability Schedule"), QColor(200, 180, 50), this);
+	m_tabWidget->addTab(m_lightingScheduleWidget, tr("Lighting Schedule"));
 	connect(m_lightingScheduleWidget, &IC18599ScheduleEditWidget::valuesChanged,
 			this, &IC18599MainWindow::onScheduleModified);
 
@@ -77,45 +77,45 @@ void IC18599MainWindow::setupUI() {
 	m_tabWidget->addTab(m_logWidget, tr("Log"));
 
 	// --- Menu ---
-	QMenu *fileMenu = menuBar()->addMenu(tr("&Datei"));
+	QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
 
-	QAction *newAct = new QAction(tr("&Neues Projekt"), this);
+	QAction *newAct = new QAction(tr("&New Project"), this);
 	newAct->setShortcut(QKeySequence::New);
 	connect(newAct, &QAction::triggered, this, &IC18599MainWindow::onNewProject);
 	fileMenu->addAction(newAct);
 
-	QAction *openAct = new QAction(tr("Projekt &öffnen..."), this);
+	QAction *openAct = new QAction(tr("&Open Project..."), this);
 	openAct->setShortcut(QKeySequence::Open);
 	connect(openAct, &QAction::triggered, this, &IC18599MainWindow::onOpenProject);
 	fileMenu->addAction(openAct);
 
-	QAction *saveAct = new QAction(tr("Projekt &speichern"), this);
+	QAction *saveAct = new QAction(tr("&Save Project"), this);
 	saveAct->setShortcut(QKeySequence::Save);
 	connect(saveAct, &QAction::triggered, this, &IC18599MainWindow::onSaveProject);
 	fileMenu->addAction(saveAct);
 
-	QAction *saveAsAct = new QAction(tr("Projekt speichern &unter..."), this);
+	QAction *saveAsAct = new QAction(tr("Save Project &As..."), this);
 	saveAsAct->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_S));
 	connect(saveAsAct, &QAction::triggered, this, &IC18599MainWindow::onSaveProjectAs);
 	fileMenu->addAction(saveAsAct);
 
 	fileMenu->addSeparator();
 
-	QAction *loadAct = new QAction(tr("Normdaten &laden (CSV)..."), this);
+	QAction *loadAct = new QAction(tr("&Load Norm Data (CSV)..."), this);
 	connect(loadAct, &QAction::triggered, this, &IC18599MainWindow::onLoadCSV);
 	fileMenu->addAction(loadAct);
 
 	fileMenu->addSeparator();
 
-	QAction *quitAct = new QAction(tr("&Beenden"), this);
+	QAction *quitAct = new QAction(tr("&Quit"), this);
 	quitAct->setShortcut(QKeySequence::Quit);
 	connect(quitAct, &QAction::triggered, this, &IC18599MainWindow::onQuit);
 	fileMenu->addAction(quitAct);
 
 	// Statusbar
-	statusBar()->showMessage(tr("Bereit. Bitte CSV-Datei mit Normdaten laden."));
+	statusBar()->showMessage(tr("Ready. Please load a CSV file with norm data."));
 
-	m_logWidget->appendPlainText(tr("Programm gestartet."));
+	m_logWidget->appendPlainText(tr("Program started."));
 }
 
 
@@ -131,8 +131,8 @@ void IC18599MainWindow::onNewProject() {
 	m_equipmentScheduleWidget->setGroups({});
 	m_lightingScheduleWidget->setGroups({});
 	updateWindowTitle();
-	m_logWidget->appendPlainText(tr("Neues Projekt erstellt."));
-	statusBar()->showMessage(tr("Neues Projekt. Bitte CSV-Datei laden."));
+	m_logWidget->appendPlainText(tr("New project created."));
+	statusBar()->showMessage(tr("New project. Please load a CSV file."));
 }
 
 
@@ -141,16 +141,16 @@ void IC18599MainWindow::onOpenProject() {
 		return;
 
 	QString fname = QFileDialog::getOpenFileName(this,
-		tr("Projekt öffnen"),
+		tr("Open Project"),
 		QString(),
-		tr("IC18599 Projektdateien (*.ic18599);;Alle Dateien (*)"));
+		tr("IC18599 Project Files (*.ic18599);;All Files (*)"));
 	if (fname.isEmpty())
 		return;
 
 	IC18599Project proj;
 	if (!proj.load(fname)) {
-		m_logWidget->appendPlainText(tr("Fehler beim Laden: %1").arg(fname));
-		QMessageBox::warning(this, tr("Fehler"), tr("Projektdatei konnte nicht geladen werden."));
+		m_logWidget->appendPlainText(tr("Error loading: %1").arg(fname));
+		QMessageBox::warning(this, tr("Error"), tr("Project file could not be loaded."));
 		return;
 	}
 
@@ -162,11 +162,11 @@ void IC18599MainWindow::onOpenProject() {
 	QString csvPath = projInfo.dir().filePath(m_project.m_csvFilePath);
 
 	if (!m_normDataWidget->loadCSV(csvPath)) {
-		m_logWidget->appendPlainText(tr("Warnung: CSV konnte nicht geladen werden: %1").arg(csvPath));
+		m_logWidget->appendPlainText(tr("Warning: CSV could not be loaded: %1").arg(csvPath));
 	}
 	else {
 		m_project.m_profileNames = m_normDataWidget->profileNames();
-		m_logWidget->appendPlainText(tr("Normdaten geladen: %1").arg(csvPath));
+		m_logWidget->appendPlainText(tr("Norm data loaded: %1").arg(csvPath));
 	}
 
 	populateProfileComboBox();
@@ -177,8 +177,8 @@ void IC18599MainWindow::onOpenProject() {
 		m_profileComboBox->setCurrentIndex(idx);
 
 	updateWindowTitle();
-	m_logWidget->appendPlainText(tr("Projekt geladen: %1").arg(fname));
-	statusBar()->showMessage(tr("Projekt: %1").arg(fname));
+	m_logWidget->appendPlainText(tr("Project loaded: %1").arg(fname));
+	statusBar()->showMessage(tr("Project: %1").arg(fname));
 }
 
 
@@ -192,21 +192,21 @@ void IC18599MainWindow::onSaveProject() {
 	if (m_project.save(m_projectFilePath)) {
 		m_project.m_modified = false;
 		updateWindowTitle();
-		m_logWidget->appendPlainText(tr("Projekt gespeichert: %1").arg(m_projectFilePath));
-		statusBar()->showMessage(tr("Gespeichert: %1").arg(m_projectFilePath));
+		m_logWidget->appendPlainText(tr("Project saved: %1").arg(m_projectFilePath));
+		statusBar()->showMessage(tr("Saved: %1").arg(m_projectFilePath));
 	}
 	else {
-		m_logWidget->appendPlainText(tr("Fehler beim Speichern: %1").arg(m_projectFilePath));
-		QMessageBox::warning(this, tr("Fehler"), tr("Projekt konnte nicht gespeichert werden."));
+		m_logWidget->appendPlainText(tr("Error saving: %1").arg(m_projectFilePath));
+		QMessageBox::warning(this, tr("Error"), tr("Project could not be saved."));
 	}
 }
 
 
 void IC18599MainWindow::onSaveProjectAs() {
 	QString fname = QFileDialog::getSaveFileName(this,
-		tr("Projekt speichern unter"),
+		tr("Save Project As"),
 		QString(),
-		tr("IC18599 Projektdateien (*.ic18599);;Alle Dateien (*)"));
+		tr("IC18599 Project Files (*.ic18599);;All Files (*)"));
 	if (fname.isEmpty())
 		return;
 
@@ -230,9 +230,9 @@ void IC18599MainWindow::onSaveProjectAs() {
 
 void IC18599MainWindow::onLoadCSV() {
 	QString fname = QFileDialog::getOpenFileName(this,
-		tr("DIN 18599 Normdaten laden"),
+		tr("Load DIN 18599 Norm Data"),
 		QString(),
-		tr("CSV-Dateien (*.csv);;Alle Dateien (*)"));
+		tr("CSV Files (*.csv);;All Files (*)"));
 	if (fname.isEmpty())
 		return;
 
@@ -241,13 +241,13 @@ void IC18599MainWindow::onLoadCSV() {
 		m_project.m_csvFilePath = fname;  // store absolute, relativize on save
 		m_project.m_profileNames = m_normDataWidget->profileNames();
 		populateProfileComboBox();
-		m_logWidget->appendPlainText(tr("Normdaten geladen: %1").arg(fname));
-		statusBar()->showMessage(tr("Datei: %1").arg(fname));
+		m_logWidget->appendPlainText(tr("Norm data loaded: %1").arg(fname));
+		statusBar()->showMessage(tr("File: %1").arg(fname));
 		m_tabWidget->setCurrentIndex(0);
 	}
 	else {
-		m_logWidget->appendPlainText(tr("Fehler beim Laden: %1").arg(fname));
-		statusBar()->showMessage(tr("Fehler beim Laden."));
+		m_logWidget->appendPlainText(tr("Error loading: %1").arg(fname));
+		statusBar()->showMessage(tr("Error loading."));
 	}
 }
 
@@ -265,7 +265,7 @@ void IC18599MainWindow::onProfileChanged(const QString &profileName) {
 	loadProfileDataToWidgets(profileName);
 	recalculateResults();
 
-	statusBar()->showMessage(tr("Profil: %1").arg(profileName));
+	statusBar()->showMessage(tr("Profile: %1").arg(profileName));
 }
 
 
@@ -326,7 +326,7 @@ void IC18599MainWindow::loadProfileDataToWidgets(const QString &profileName) {
 
 
 void IC18599MainWindow::updateWindowTitle() {
-	QString title = tr("DIN 18599 - Konvertierung für dynamische Simulation");
+	QString title = tr("DIN 18599 - Conversion for Dynamic Simulation");
 	if (!m_projectFilePath.isEmpty()) {
 		QFileInfo fi(m_projectFilePath);
 		title = fi.fileName() + " - " + title;
@@ -342,8 +342,8 @@ bool IC18599MainWindow::maybeSave() {
 		return true;
 
 	QMessageBox::StandardButton ret = QMessageBox::warning(this,
-		tr("Ungespeicherte Änderungen"),
-		tr("Das Projekt wurde geändert. Möchten Sie speichern?"),
+		tr("Unsaved Changes"),
+		tr("The project has been modified. Do you want to save?"),
 		QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
 
 	if (ret == QMessageBox::Save) {

@@ -17,7 +17,7 @@ IC18599NormDataWidget::IC18599NormDataWidget(QWidget *parent) :
 void IC18599NormDataWidget::setupUI() {
 	QVBoxLayout *layout = new QVBoxLayout(this);
 
-	m_infoLabel = new QLabel(tr("Bitte CSV-Datei mit DIN 18599 Normdaten laden (Datei > Normdaten laden)."), this);
+	m_infoLabel = new QLabel(tr("Please load a CSV file with DIN 18599 norm data (File > Load Norm Data)."), this);
 	layout->addWidget(m_infoLabel);
 
 	m_tableWidget = new QTableWidget(this);
@@ -55,27 +55,66 @@ bool IC18599NormDataWidget::loadCSV(const QString &fname) {
 	// First row is header (Parameter; Zone1; Zone2; ...)
 	QStringList headerRow = data.first();
 
-	// Setup table
-	int numRows = data.size() - 1;   // minus header
+	// Rows to hide from display (derived values computed from other rows)
+	QStringList hiddenParams = {
+		"Personenlast [W/m2]",
+		"Arbeitshilfen (Geräte) [W/m2]"
+	};
+
+	// Collect display rows (skip hidden parameters)
+	QVector<int> displayRows;  // indices into data (1-based, skipping header)
+	for (int r = 1; r < data.size(); ++r) {
+		QString paramName = data[r].isEmpty() ? QString() : data[r][0].trimmed();
+		if (!hiddenParams.contains(paramName))
+			displayRows.append(r);
+	}
+
+	int numRows = displayRows.size();
 	int numCols = maxCols;
 
 	m_tableWidget->clear();
 	m_tableWidget->setRowCount(numRows);
 	m_tableWidget->setColumnCount(numCols);
 
-	// Set horizontal header from first row
+	// Set horizontal header from first row, wrapping long names into multiple lines
+	int maxLineCount = 1;
 	QStringList hHeaders;
 	for (int c = 0; c < numCols; ++c) {
-		if (c < headerRow.size())
-			hHeaders << headerRow[c].trimmed();
-		else
-			hHeaders << "";
+		QString raw = (c < headerRow.size()) ? headerRow[c].trimmed() : QString();
+		// Replace underscores with spaces in profile names
+		if (c > 0)
+			raw.replace('_', ' ');
+		// Wrap long profile names at word boundaries (~22 chars per line)
+		if (c > 0 && raw.length() > 24) {
+			QString wrapped;
+			int lineLen = 0;
+			int lineCount = 1;
+			for (int i = 0; i < raw.length(); ++i) {
+				wrapped += raw[i];
+				lineLen++;
+				if (lineLen >= 22 && raw[i] == ' ' && i + 1 < raw.length()) {
+					wrapped += '\n';
+					lineLen = 0;
+					lineCount++;
+				}
+			}
+			if (lineCount > maxLineCount)
+				maxLineCount = lineCount;
+			hHeaders << wrapped;
+		}
+		else {
+			hHeaders << raw;
+		}
 	}
 	m_tableWidget->setHorizontalHeaderLabels(hHeaders);
 
+	// Size header height to fit wrapped text
+	int lineHeight = m_tableWidget->fontMetrics().height();
+	m_tableWidget->horizontalHeader()->setFixedHeight(maxLineCount * lineHeight + 8);
+
 	// Fill data rows
-	for (int r = 1; r < data.size(); ++r) {
-		const QStringList &fields = data[r];
+	for (int dr = 0; dr < displayRows.size(); ++dr) {
+		const QStringList &fields = data[displayRows[dr]];
 		for (int c = 0; c < numCols; ++c) {
 			QString text;
 			if (c < fields.size())
@@ -97,19 +136,19 @@ bool IC18599NormDataWidget::loadCSV(const QString &fname) {
 				item->setBackground(QColor(220, 230, 240));
 			}
 
-			m_tableWidget->setItem(r - 1, c, item);
+			m_tableWidget->setItem(dr, c, item);
 		}
 	}
 
 	// Resize first column (parameter names) to content
 	m_tableWidget->resizeColumnToContents(0);
 
-	// Set a reasonable width for zone columns
+	// Set a reasonable width for profile columns
 	for (int c = 1; c < numCols; ++c) {
-		m_tableWidget->setColumnWidth(c, 80);
+		m_tableWidget->setColumnWidth(c, 160);
 	}
 
-	m_infoLabel->setText(tr("DIN V 18599-10: %1 Parameter, %2 Nutzungsprofile")
+	m_infoLabel->setText(tr("DIN V 18599-10: %1 parameters, %2 usage profiles")
 		.arg(numRows).arg(numCols - 1));
 
 	return true;

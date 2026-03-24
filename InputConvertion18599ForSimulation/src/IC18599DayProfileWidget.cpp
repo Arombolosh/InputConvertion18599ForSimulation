@@ -3,7 +3,7 @@
 #include <QPainter>
 #include <QMouseEvent>
 
-static const char* DAY_NAMES[] = {"Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"};
+static const char* DAY_NAMES[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
 IC18599DayProfileWidget::IC18599DayProfileWidget(QWidget *parent) :
 	QWidget(parent),
