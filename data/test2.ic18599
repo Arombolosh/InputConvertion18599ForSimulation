@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<IC18599Project fileVersion="1">
+	<CsvFile>DIN18599_Nutzungsprofile.csv</CsvFile>
+	<LastProfile>Einzelhandel_Kaufhaus mit Kühlung</LastProfile>
+	<Profiles>
+		<Profile name="Besprechung">
+			<PersonSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</PersonSchedule>
+			<EquipmentSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</EquipmentSchedule>
+		</Profile>
+		<Profile name="Buero">
+			<PersonSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 0 0 0 0 0 53 54 55 55 56 57 0 57 58 59 59 59 59 59 35 0 0</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 25 28 29 32 33 36 37 38 37 31 27 26 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</PersonSchedule>
+			<EquipmentSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 0 0 0 0 0 0 55 55 56 57 57 57 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 0 37 37 37 37 36 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</EquipmentSchedule>
+		</Profile>
+		<Profile name="Einzelhandel_Kaufhaus">
+			<PersonSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</PersonSchedule>
+			<EquipmentSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>15 15 15 15 15 15 17 18 19 20 20 21 22 22 23 23 23 16 16 27 15 15 0 15</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>31 31 31 30 29 0 0 0 0 0 0 37 37 37 37 37 35 35 35 34 34 33 32 31</Values>
+				</DailyCycleGroup>
+			</EquipmentSchedule>
+		</Profile>
+		<Profile name="Einzelhandel_Kaufhaus mit Kühlung">
+			<PersonSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</PersonSchedule>
+			<EquipmentSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 46 48 48 47 47 46 46 46 46 46 46 46 46 46 0 46 0 0 46 0 0 46</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</EquipmentSchedule>
+		</Profile>
+		<Profile name="Grossraumbüro">
+			<PersonSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</PersonSchedule>
+			<EquipmentSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</EquipmentSchedule>
+		</Profile>
+		<Profile name="Gruppenbuero">
+			<PersonSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 0 0 0 0 0 51 51 51 51 50 48 41 37 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 0 0 24 26 29 32 33 35 35 32 28 25 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</PersonSchedule>
+			<EquipmentSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 0 0 0 0 28 30 32 35 36 37 37 25 23 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 63 67 70 73 75 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</EquipmentSchedule>
+		</Profile>
+		<Profile name="Schalterhalle">
+			<PersonSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</PersonSchedule>
+			<EquipmentSchedule>
+				<DailyCycleGroup days="0,1,2,3,4">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+				<DailyCycleGroup days="5,6">
+					<Values>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</Values>
+				</DailyCycleGroup>
+			</EquipmentSchedule>
+		</Profile>
+	</Profiles>
+</IC18599Project>
