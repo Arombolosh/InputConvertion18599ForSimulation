@@ -1,211 +1,171 @@
 #include "IC18599ScheduleEditWidget.h"
+#include "ui_IC18599ScheduleEditWidget.h"
 #include "IC18599DayProfileWidget.h"
 
-#include <QAbstractItemView>
+#include <QAbstractItemDelegate>
 #include <QCheckBox>
-#include <QHeaderView>
-#include <QLabel>
 #include <QTableWidget>
-#include <QToolButton>
-#include <QGroupBox>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
 
-static const char* DAY_SHORT[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-
-IC18599ScheduleEditWidget::IC18599ScheduleEditWidget(const QString &title,
-													   const QColor &barColor,
-													   QWidget *parent) :
+IC18599ScheduleEditWidget::IC18599ScheduleEditWidget(QWidget *parent) :
 	QWidget(parent),
-	m_currentGroupIdx(0),
-	m_blockSignals(false),
-	m_barColor(barColor)
+	m_ui(new Ui::IC18599ScheduleEditWidget)
 {
-	// Create initial group with all weekdays
-	DailyCycleGroup weekdays;
-	weekdays.m_days = {0, 1, 2, 3, 4};
-	m_groups.push_back(weekdays);
-
-	// Create second group with weekend
-	DailyCycleGroup weekend;
-	weekend.m_days = {5, 6};
-	m_groups.push_back(weekend);
-
-	setupUI(title, barColor);
-	updateUI();
+	m_ui->setupUi(this);
+	m_dayChecks[0] = m_ui->m_dayCheck0;
+	m_dayChecks[1] = m_ui->m_dayCheck1;
+	m_dayChecks[2] = m_ui->m_dayCheck2;
+	m_dayChecks[3] = m_ui->m_dayCheck3;
+	m_dayChecks[4] = m_ui->m_dayCheck4;
+	m_dayChecks[5] = m_ui->m_dayCheck5;
+	m_dayChecks[6] = m_ui->m_dayCheck6;
+	m_ui->m_resultsGroupBox->setVisible(false);
 }
 
 
-void IC18599ScheduleEditWidget::setupUI(const QString &title, const QColor &barColor) {
-	m_mainLayout = new QVBoxLayout(this);
-	m_mainLayout->setContentsMargins(4, 4, 4, 4);
-	m_mainLayout->setSpacing(4);
+IC18599ScheduleEditWidget::IC18599ScheduleEditWidget(const QString &title,
+													   const QColor &barColor,
+													   QWidget *parent,
+													   const QString &unitLabel,
+													   double minVal,
+													   double maxVal,
+													   double defaultVal) :
+	IC18599ScheduleEditWidget(parent)
+{
+	configure(title, barColor, unitLabel, minVal, maxVal, defaultVal);
+}
 
-	// Title
-	m_infoLabel = new QLabel(title, this);
-	QFont f = m_infoLabel->font();
-	f.setBold(true);
-	f.setPointSize(11);
-	m_infoLabel->setFont(f);
-	m_mainLayout->addWidget(m_infoLabel);
 
-	// Week chart (top, full width)
-	m_chartWidget = new IC18599DayProfileWidget(this);
-	m_chartWidget->setBarColor(barColor);
-	m_chartWidget->setYAxisLabel(tr("[%]"));
-	m_chartWidget->setMinimumHeight(160);
-	m_mainLayout->addWidget(m_chartWidget, 3);
+IC18599ScheduleEditWidget::~IC18599ScheduleEditWidget() {
+	delete m_ui;
+}
 
-	// Bottom: table (left) + day group panel (right)
-	QHBoxLayout *bottomLayout = new QHBoxLayout;
-	bottomLayout->setSpacing(8);
 
-	// --- Compact table (left) ---
-	m_tableWidget = new QTableWidget(24, 2, this);
-	m_tableWidget->setHorizontalHeaderLabels({tr("Time"), tr("[%]")});
-	m_tableWidget->horizontalHeader()->setStretchLastSection(true);
-	m_tableWidget->horizontalHeader()->setDefaultSectionSize(50);
-	m_tableWidget->setColumnWidth(0, 80);
-	m_tableWidget->setAlternatingRowColors(true);
-	m_tableWidget->verticalHeader()->setVisible(false);
-	m_tableWidget->verticalHeader()->setDefaultSectionSize(20);
-	m_tableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
-	m_tableWidget->setMaximumWidth(240);
-	m_tableWidget->setMinimumWidth(180);
+void IC18599ScheduleEditWidget::configure(const QString &title, const QColor &barColor,
+										  const QString &unitLabel,
+										  double minVal, double maxVal,
+										  double defaultVal)
+{
+	configure(title, { {title, unitLabel, barColor, minVal, maxVal, defaultVal} });
+}
 
-	QFont tableFont = font();
-	tableFont.setPointSize(8);
-	m_tableWidget->setFont(tableFont);
 
+void IC18599ScheduleEditWidget::configure(const QString &title,
+										  const std::vector<ScheduleChannel> &channels)
+{
+	if (m_configured)
+		return;
+	m_configured = true;
+
+	m_channels = channels;
+	int nCh = (int)channels.size();
+
+	// Schedule group box title
+	m_ui->groupBox->setTitle(title);
+
+	// Table: set column count to 1 + nCh (Time + one column per channel)
+	m_ui->m_tableWidget->setColumnCount(1 + nCh);
+	QStringList headers = {tr("Time")};
+	for (const auto &ch : channels)
+		headers << ch.unitLabel;
+	m_ui->m_tableWidget->setHorizontalHeaderLabels(headers);
+	m_ui->m_tableWidget->setColumnWidth(0, 80);
+
+	// Populate 24 time rows + default values per channel
 	for (int h = 0; h < 24; ++h) {
+		// Time item in col 0 (read-only, grey background)
 		QTableWidgetItem *timeItem = new QTableWidgetItem(
 			QString("%1:00-%2:00").arg(h, 2, 10, QChar('0')).arg(h + 1, 2, 10, QChar('0')));
 		timeItem->setFlags(timeItem->flags() & ~Qt::ItemIsEditable);
 		timeItem->setBackground(QColor(240, 240, 240));
-		m_tableWidget->setItem(h, 0, timeItem);
+		m_ui->m_tableWidget->setItem(h, 0, timeItem);
 
-		QTableWidgetItem *valItem = new QTableWidgetItem("0");
-		valItem->setTextAlignment(Qt::AlignCenter);
-		m_tableWidget->setItem(h, 1, valItem);
-	}
-	bottomLayout->addWidget(m_tableWidget);
-
-	// --- Day group panel (right) ---
-	QVBoxLayout *panelLayout = new QVBoxLayout;
-	panelLayout->setSpacing(4);
-
-	// Navigation: backward, group label, forward
-	QHBoxLayout *navLayout = new QHBoxLayout;
-	navLayout->setSpacing(2);
-
-	m_btnBackward = new QToolButton(this);
-	m_btnBackward->setArrowType(Qt::LeftArrow);
-	m_btnBackward->setToolTip(tr("Previous Group"));
-	navLayout->addWidget(m_btnBackward);
-
-	m_groupLabel = new QLabel(this);
-	m_groupLabel->setAlignment(Qt::AlignCenter);
-	m_groupLabel->setMinimumWidth(80);
-	QFont glf = m_groupLabel->font();
-	glf.setBold(true);
-	m_groupLabel->setFont(glf);
-	navLayout->addWidget(m_groupLabel);
-
-	m_btnForward = new QToolButton(this);
-	m_btnForward->setArrowType(Qt::RightArrow);
-	m_btnForward->setToolTip(tr("Next Group"));
-	navLayout->addWidget(m_btnForward);
-
-	panelLayout->addLayout(navLayout);
-
-	// Add / Delete buttons
-	QHBoxLayout *addDelLayout = new QHBoxLayout;
-	addDelLayout->setSpacing(2);
-
-	m_btnAdd = new QToolButton(this);
-	m_btnAdd->setText("+");
-	m_btnAdd->setToolTip(tr("Create New Group"));
-	m_btnAdd->setFixedSize(28, 28);
-	addDelLayout->addWidget(m_btnAdd);
-
-	m_btnDelete = new QToolButton(this);
-	m_btnDelete->setText("-");  // Unicode minus
-	m_btnDelete->setToolTip(tr("Delete Current Group"));
-	m_btnDelete->setFixedSize(28, 28);
-	addDelLayout->addWidget(m_btnDelete);
-
-	addDelLayout->addStretch();
-	panelLayout->addLayout(addDelLayout);
-
-	// Validity label
-	m_validLabel = new QLabel(this);
-	m_validLabel->setAlignment(Qt::AlignCenter);
-	m_validLabel->setFixedHeight(22);
-	m_validLabel->setFont(QFont(font().family(), 8, QFont::Bold));
-	panelLayout->addWidget(m_validLabel);
-
-	// Day checkboxes (vertical)
-	QGroupBox *dayGroup = new QGroupBox(tr("Day Types"), this);
-	QVBoxLayout *dayGroupLayout = new QVBoxLayout(dayGroup);
-	dayGroupLayout->setSpacing(2);
-	dayGroupLayout->setContentsMargins(6, 10, 6, 6);
-
-	for (int d = 0; d < 7; ++d) {
-		m_dayChecks[d] = new QCheckBox(DAY_SHORT[d], dayGroup);
-		dayGroupLayout->addWidget(m_dayChecks[d]);
-		connect(m_dayChecks[d], &QCheckBox::toggled, this,
-				[this, d]() { onDayCheckChanged(d); });
-		if (d == 4) {
-			QFrame *line = new QFrame(dayGroup);
-			line->setFrameShape(QFrame::HLine);
-			line->setFrameShadow(QFrame::Sunken);
-			dayGroupLayout->addWidget(line);
+		// Value items in cols 1..nCh (editable, centered)
+		for (int c = 0; c < nCh; ++c) {
+			double defVal = channels[(size_t)c].defaultVal;
+			QTableWidgetItem *valItem = new QTableWidgetItem(
+				QString::number(defVal, 'f', (defVal == (int)defVal) ? 0 : 1));
+			valItem->setTextAlignment(Qt::AlignCenter);
+			m_ui->m_tableWidget->setItem(h, 1 + c, valItem);
 		}
 	}
 
-	dayGroupLayout->addStretch();
-	panelLayout->addWidget(dayGroup);
+	// Create one editable chart per channel, add to m_scheduleLayout
+	for (int c = 0; c < nCh; ++c) {
+		auto *chart = new IC18599DayProfileWidget(this);
+		chart->setTitle(channels[(size_t)c].name);
+		chart->setBarColor(channels[(size_t)c].barColor);
+		chart->setYAxisLabel(channels[(size_t)c].unitLabel);
+		chart->setMaxValue(channels[(size_t)c].maxVal);
+		chart->setMinValue(channels[(size_t)c].minVal);
+		chart->setMinimumHeight(140);
+		m_ui->m_scheduleLayout->addWidget(chart);
+		m_editCharts.push_back(chart);
+		connect(chart, &IC18599DayProfileWidget::barClicked, this,
+			[this, c](int weekHour, double val) { onBarClicked(c, weekHour, val); });
+	}
 
-	// Hint label
-	QLabel *hint = new QLabel(tr("Select multiple cells,\nenter a value + Enter\n= apply to all."), this);
-	hint->setStyleSheet("color: gray; font-size: 8pt;");
-	hint->setWordWrap(true);
-	panelLayout->addWidget(hint);
+	// Create initial groups with correct channel count
+	DailyCycleGroup weekdays;
+	weekdays.m_days = {0, 1, 2, 3, 4};
+	weekdays.m_values.clear();
+	for (const auto &ch : channels)
+		weekdays.m_values.push_back(std::vector<double>(24, ch.defaultVal));
+	m_groups.push_back(weekdays);
 
-	panelLayout->addStretch();
-	bottomLayout->addLayout(panelLayout);
-	bottomLayout->addStretch();
-
-	m_mainLayout->addLayout(bottomLayout, 5);
+	DailyCycleGroup weekend;
+	weekend.m_days = {5, 6};
+	weekend.m_values.clear();
+	for (const auto &ch : channels)
+		weekend.m_values.push_back(std::vector<double>(24, ch.defaultVal));
+	m_groups.push_back(weekend);
 
 	// Connections
-	connect(m_tableWidget, &QTableWidget::cellChanged,
+	connect(m_ui->m_tableWidget, &QTableWidget::cellChanged,
 			this, &IC18599ScheduleEditWidget::onTableCellChanged);
-	connect(m_chartWidget, &IC18599DayProfileWidget::barClicked,
-			this, &IC18599ScheduleEditWidget::onBarClicked);
-	connect(m_btnBackward, &QToolButton::clicked, this, &IC18599ScheduleEditWidget::onBackward);
-	connect(m_btnForward, &QToolButton::clicked, this, &IC18599ScheduleEditWidget::onForward);
-	connect(m_btnAdd, &QToolButton::clicked, this, &IC18599ScheduleEditWidget::onAddGroup);
-	connect(m_btnDelete, &QToolButton::clicked, this, &IC18599ScheduleEditWidget::onDeleteGroup);
+	// Fix: cellChanged doesn't fire when the entered value equals the old value.
+	// closeEditor fires whenever editing ends, so we force-apply to all selected cells.
+	connect(m_ui->m_tableWidget->itemDelegate(), &QAbstractItemDelegate::closeEditor,
+			this, [this](QWidget *, QAbstractItemDelegate::EndEditHint hint) {
+		if (m_blockSignals)
+			return;  // programmatic update in progress
+		if (hint == QAbstractItemDelegate::RevertModelCache)
+			return;  // Escape pressed — don't apply
+		int row = m_ui->m_tableWidget->currentRow();
+		int col = m_ui->m_tableWidget->currentColumn();
+		if (col >= 1 && row >= 0 && row < 24)
+			onTableCellChanged(row, col);
+	});
+	connect(m_ui->m_btnBackward, &QToolButton::clicked, this, &IC18599ScheduleEditWidget::onBackward);
+	connect(m_ui->m_btnForward, &QToolButton::clicked, this, &IC18599ScheduleEditWidget::onForward);
+	connect(m_ui->m_btnAdd, &QToolButton::clicked, this, &IC18599ScheduleEditWidget::onAddGroup);
+	connect(m_ui->m_btnDelete, &QToolButton::clicked, this, &IC18599ScheduleEditWidget::onDeleteGroup);
+	for (int d = 0; d < 7; ++d) {
+		connect(m_dayChecks[d], &QCheckBox::toggled, this,
+				[this, d]() { onDayCheckChanged(d); });
+	}
+
+	updateUI();
 }
 
 
 // --- Data access ---
 
-std::vector<double> IC18599ScheduleEditWidget::weekValues() const {
+std::vector<double> IC18599ScheduleEditWidget::weekValues(int channel) const {
 	std::vector<double> week(168, 0.0);
 	for (const DailyCycleGroup &g : m_groups) {
+		if (channel >= g.channelCount())
+			continue;
 		for (int d : g.m_days) {
 			for (int h = 0; h < 24; ++h)
-				week[(size_t)(d * 24 + h)] = g.m_values[(size_t)h];
+				week[(size_t)(d * 24 + h)] = g.m_values[(size_t)channel][(size_t)h];
 		}
 	}
 	return week;
 }
 
 
-std::vector<double> IC18599ScheduleEditWidget::annualValues() const {
-	std::vector<double> week = weekValues();
+std::vector<double> IC18599ScheduleEditWidget::annualValues(int channel) const {
+	std::vector<double> week = weekValues(channel);
 	std::vector<double> annual(8760, 0.0);
 	for (int h = 0; h < 8760; ++h)
 		annual[(size_t)h] = week[(size_t)(h % 168)];
@@ -219,10 +179,22 @@ void IC18599ScheduleEditWidget::setGroups(const std::vector<DailyCycleGroup> &gr
 		// Ensure at least one group exists
 		DailyCycleGroup weekdays;
 		weekdays.m_days = {0, 1, 2, 3, 4};
+		weekdays.m_values.clear();
+		for (const auto &ch : m_channels)
+			weekdays.m_values.push_back(std::vector<double>(24, ch.defaultVal));
 		m_groups.push_back(weekdays);
 		DailyCycleGroup weekend;
 		weekend.m_days = {5, 6};
+		weekend.m_values.clear();
+		for (const auto &ch : m_channels)
+			weekend.m_values.push_back(std::vector<double>(24, ch.defaultVal));
 		m_groups.push_back(weekend);
+	}
+	// Pad missing channels with per-channel defaults
+	int nCh = (int)m_channels.size();
+	for (auto &g : m_groups) {
+		for (int c = g.channelCount(); c < nCh; ++c)
+			g.m_values.push_back(std::vector<double>(24, m_channels[(size_t)c].defaultVal));
 	}
 	m_currentGroupIdx = 0;
 	updateUI();
@@ -245,34 +217,39 @@ std::vector<int> IC18599ScheduleEditWidget::unassignedDays() const {
 // --- Slots ---
 
 void IC18599ScheduleEditWidget::onTableCellChanged(int row, int col) {
-	if (m_blockSignals || col != 1 || row < 0 || row >= 24)
+	if (m_blockSignals || col < 1 || row < 0 || row >= 24)
+		return;
+	int channel = col - 1;
+	if (channel >= (int)m_channels.size())
 		return;
 	if (m_currentGroupIdx < 0 || m_currentGroupIdx >= (int)m_groups.size())
 		return;
 
-	QTableWidgetItem *item = m_tableWidget->item(row, 1);
+	QTableWidgetItem *item = m_ui->m_tableWidget->item(row, col);
 	if (!item) return;
 
+	const ScheduleChannel &chDef = m_channels[(size_t)channel];
 	bool ok;
 	double val = item->text().toDouble(&ok);
-	if (!ok) val = 0.0;
-	val = std::max(0.0, std::min(100.0, val));
+	if (!ok) val = chDef.defaultVal;
+	val = std::max(chDef.minVal, std::min(chDef.maxVal, val));
 
 	DailyCycleGroup &grp = m_groups[(size_t)m_currentGroupIdx];
+	grp.ensureChannelCount((int)m_channels.size());
 
 	// Apply to all selected ranges (multi-cell editing)
-	QList<QTableWidgetSelectionRange> ranges = m_tableWidget->selectedRanges();
+	QList<QTableWidgetSelectionRange> ranges = m_ui->m_tableWidget->selectedRanges();
 	m_blockSignals = true;
 	for (const QTableWidgetSelectionRange &range : ranges) {
 		for (int r = range.topRow(); r <= range.bottomRow(); ++r) {
-			QTableWidgetItem *cellItem = m_tableWidget->item(r, 1);
+			QTableWidgetItem *cellItem = m_ui->m_tableWidget->item(r, col);
 			if (cellItem)
 				cellItem->setText(QString::number(val, 'f', (val == (int)val) ? 0 : 1));
-			grp.m_values[(size_t)r] = val;
+			grp.m_values[(size_t)channel][(size_t)r] = val;
 		}
 	}
 	// Also the edited cell itself
-	grp.m_values[(size_t)row] = val;
+	grp.m_values[(size_t)channel][(size_t)row] = val;
 	item->setText(QString::number(val, 'f', (val == (int)val) ? 0 : 1));
 	m_blockSignals = false;
 
@@ -281,8 +258,10 @@ void IC18599ScheduleEditWidget::onTableCellChanged(int row, int col) {
 }
 
 
-void IC18599ScheduleEditWidget::onBarClicked(int weekHour, double valuePct) {
+void IC18599ScheduleEditWidget::onBarClicked(int channel, int weekHour, double valuePct) {
 	if (weekHour < 0 || weekHour >= 168)
+		return;
+	if (channel < 0 || channel >= (int)m_channels.size())
 		return;
 
 	int clickedDay = weekHour / 24;
@@ -292,7 +271,8 @@ void IC18599ScheduleEditWidget::onBarClicked(int weekHour, double valuePct) {
 	for (int g = 0; g < (int)m_groups.size(); ++g) {
 		if (m_groups[(size_t)g].m_days.count(clickedDay)) {
 			m_currentGroupIdx = g;
-			m_groups[(size_t)g].m_values[(size_t)clickedHour] = valuePct;
+			m_groups[(size_t)g].ensureChannelCount((int)m_channels.size());
+			m_groups[(size_t)g].m_values[(size_t)channel][(size_t)clickedHour] = valuePct;
 			updateUI();
 			emit valuesChanged();
 			return;
@@ -351,6 +331,10 @@ void IC18599ScheduleEditWidget::onAddGroup() {
 	std::vector<int> ua = unassignedDays();
 	for (int d : ua)
 		newGrp.m_days.insert(d);
+	// Initialize with correct channel count
+	newGrp.m_values.clear();
+	for (const auto &ch : m_channels)
+		newGrp.m_values.push_back(std::vector<double>(24, ch.defaultVal));
 	m_groups.push_back(newGrp);
 	m_currentGroupIdx = (int)m_groups.size() - 1;
 	updateUI();
@@ -360,7 +344,6 @@ void IC18599ScheduleEditWidget::onAddGroup() {
 void IC18599ScheduleEditWidget::onDeleteGroup() {
 	if (m_groups.size() <= 1)
 		return;  // keep at least one group
-	// Days become unassigned (or reassign to first remaining group?)
 	m_groups.erase(m_groups.begin() + m_currentGroupIdx);
 	if (m_currentGroupIdx >= (int)m_groups.size())
 		m_currentGroupIdx = (int)m_groups.size() - 1;
@@ -415,14 +398,29 @@ void IC18599ScheduleEditWidget::updateDayCheckboxes() {
 
 
 void IC18599ScheduleEditWidget::updateGroupLabel() {
-	m_groupLabel->setText(tr("Group %1/%2")
+	m_ui->m_groupLabel->setText(tr("Group %1/%2")
 		.arg(m_currentGroupIdx + 1)
 		.arg(m_groups.size()));
 
-	m_btnBackward->setEnabled(m_currentGroupIdx > 0);
-	m_btnForward->setEnabled(m_currentGroupIdx < (int)m_groups.size() - 1);
-	m_btnDelete->setEnabled(m_groups.size() > 1);
-	m_btnAdd->setEnabled(!unassignedDays().empty() || m_groups.size() < 7);
+	m_ui->m_btnBackward->setEnabled(m_currentGroupIdx > 0);
+	m_ui->m_btnForward->setEnabled(m_currentGroupIdx < (int)m_groups.size() - 1);
+	m_ui->m_btnDelete->setEnabled(m_groups.size() > 1);
+	m_ui->m_btnAdd->setEnabled(!unassignedDays().empty() || m_groups.size() < 7);
+
+	// Validation: check for unassigned days
+	static const char * DAY_NAMES[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+	std::vector<int> ua = unassignedDays();
+	if (!ua.empty()) {
+		QStringList dayNames;
+		for (int d : ua)
+			dayNames << DAY_NAMES[d];
+		m_ui->m_validLabel->setText(tr("Warning: %1 not assigned to any group").arg(dayNames.join(", ")));
+		m_ui->m_validLabel->setStyleSheet("color: red; font-weight: bold;");
+	}
+	else {
+		m_ui->m_validLabel->setText({});
+		m_ui->m_validLabel->setStyleSheet({});
+	}
 }
 
 
@@ -430,11 +428,14 @@ void IC18599ScheduleEditWidget::updateTableFromGroup() {
 	m_blockSignals = true;
 	if (m_currentGroupIdx >= 0 && m_currentGroupIdx < (int)m_groups.size()) {
 		const DailyCycleGroup &grp = m_groups[(size_t)m_currentGroupIdx];
+		int nCh = (int)m_channels.size();
 		for (int h = 0; h < 24; ++h) {
-			QTableWidgetItem *item = m_tableWidget->item(h, 1);
-			if (item) {
-				double val = grp.m_values[(size_t)h];
-				item->setText(QString::number(val, 'f', (val == (int)val) ? 0 : 1));
+			for (int c = 0; c < nCh; ++c) {
+				QTableWidgetItem *item = m_ui->m_tableWidget->item(h, 1 + c);
+				if (item) {
+					double val = (c < grp.channelCount()) ? grp.m_values[(size_t)c][(size_t)h] : 0.0;
+					item->setText(QString::number(val, 'f', (val == (int)val) ? 0 : 1));
+				}
 			}
 		}
 	}
@@ -443,14 +444,17 @@ void IC18599ScheduleEditWidget::updateTableFromGroup() {
 
 
 void IC18599ScheduleEditWidget::updateChartFromValues() {
-	std::vector<double> week = weekValues();
-	m_chartWidget->setWeekValues(week);
+	// Update each editable chart
+	for (int c = 0; c < (int)m_editCharts.size(); ++c) {
+		std::vector<double> week = weekValues(c);
+		m_editCharts[(size_t)c]->setWeekValues(week);
 
-	// Highlight days of current group
-	if (m_currentGroupIdx >= 0 && m_currentGroupIdx < (int)m_groups.size()) {
-		const DailyCycleGroup &grp = m_groups[(size_t)m_currentGroupIdx];
-		std::vector<int> days(grp.m_days.begin(), grp.m_days.end());
-		m_chartWidget->setSelectedDays(days);
+		// Highlight days of current group
+		if (m_currentGroupIdx >= 0 && m_currentGroupIdx < (int)m_groups.size()) {
+			const DailyCycleGroup &grp = m_groups[(size_t)m_currentGroupIdx];
+			std::vector<int> days(grp.m_days.begin(), grp.m_days.end());
+			m_editCharts[(size_t)c]->setSelectedDays(days);
+		}
 	}
 }
 
@@ -459,7 +463,7 @@ void IC18599ScheduleEditWidget::setResultChartCount(int count) {
 	// Remove excess charts
 	while ((int)m_resultCharts.size() > count) {
 		IC18599DayProfileWidget *w = m_resultCharts.back();
-		m_mainLayout->removeWidget(w);
+		m_ui->m_resultsLayout->removeWidget(w);
 		delete w;
 		m_resultCharts.pop_back();
 	}
@@ -469,14 +473,16 @@ void IC18599ScheduleEditWidget::setResultChartCount(int count) {
 		w->setReadOnly(true);
 		w->setMaxValue(1.0);
 		w->setMinimumHeight(100);
-		m_mainLayout->addWidget(w, 2);
+		m_ui->m_resultsLayout->addWidget(w);
 		m_resultCharts.push_back(w);
 	}
+	m_ui->m_resultsGroupBox->setVisible(count > 0);
 }
 
 
 void IC18599ScheduleEditWidget::setResultData(int idx, const std::vector<double> &weekValues,
-											   const QString &yLabel, const QColor &color) {
+											   const QString &title, const QString &yLabel,
+											   const QColor &color) {
 	if (idx < 0 || idx >= (int)m_resultCharts.size())
 		return;
 
@@ -494,6 +500,7 @@ void IC18599ScheduleEditWidget::setResultData(int idx, const std::vector<double>
 	else
 		maxVal = std::ceil(maxVal / 10.0) * 10.0;
 
+	chart->setTitle(title);
 	chart->setMaxValue(maxVal);
 	chart->setYAxisLabel(yLabel);
 	chart->setBarColor(color);

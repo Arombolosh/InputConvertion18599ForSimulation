@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://json.schemastore.org/clang-format.json
+---
+Language:        Cpp
+UseTab: Never
+IndentWidth: 4
+TabWidth: 4

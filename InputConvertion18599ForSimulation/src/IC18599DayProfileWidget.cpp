@@ -23,9 +23,10 @@ void IC18599DayProfileWidget::setWeekValues(const std::vector<double> &vals) {
 
 
 QRectF IC18599DayProfileWidget::plotArea() const {
-	return QRectF(MARGIN_LEFT, MARGIN_TOP,
+	int mt = marginTop();
+	return QRectF(MARGIN_LEFT, mt,
 				  width() - MARGIN_LEFT - MARGIN_RIGHT,
-				  height() - MARGIN_TOP - MARGIN_BOTTOM);
+				  height() - mt - MARGIN_BOTTOM);
 }
 
 
@@ -41,8 +42,9 @@ int IC18599DayProfileWidget::hourFromPos(const QPointF &pos) const {
 
 double IC18599DayProfileWidget::pctFromPos(const QPointF &pos) const {
 	QRectF pa = plotArea();
-	double pct = m_maxValue * (pa.bottom() - pos.y()) / pa.height();
-	return std::max(0.0, std::min(m_maxValue, pct));
+	double range = m_maxValue - m_minValue;
+	double val = m_minValue + range * (pa.bottom() - pos.y()) / pa.height();
+	return std::max(m_minValue, std::min(m_maxValue, val));
 }
 
 
@@ -55,6 +57,15 @@ void IC18599DayProfileWidget::paintEvent(QPaintEvent * /*event*/) {
 	// Background
 	p.fillRect(rect(), palette().window());
 	p.fillRect(pa.toRect(), QColor(250, 250, 250));
+
+	// Title above plot area
+	if (!m_title.isEmpty()) {
+		QFont titleFont(font().family(), 9, QFont::Bold);
+		p.setFont(titleFont);
+		p.setPen(Qt::black);
+		p.drawText(MARGIN_LEFT, 2, width() - MARGIN_LEFT - MARGIN_RIGHT, 16,
+				   Qt::AlignLeft | Qt::AlignTop, m_title);
+	}
 
 	// Day backgrounds (alternating)
 	double dayW = pa.width() / 7.0;
@@ -80,14 +91,15 @@ void IC18599DayProfileWidget::paintEvent(QPaintEvent * /*event*/) {
 	smallFont.setPointSize(8);
 	p.setFont(smallFont);
 
+	double range = m_maxValue - m_minValue;
 	int numGridLines = 5;
 	for (int i = 0; i <= numGridLines; ++i) {
-		double val = m_maxValue * i / numGridLines;
+		double val = m_minValue + range * i / numGridLines;
 		double y = pa.bottom() - pa.height() * i / numGridLines;
 		p.setPen(QPen(QColor(200, 200, 200), 1, Qt::DotLine));
 		p.drawLine(QPointF(pa.left(), y), QPointF(pa.right(), y));
 		p.setPen(Qt::black);
-		QString label = (m_maxValue <= 2.0) ? QString::number(val, 'f', 1) : QString::number((int)val);
+		QString label = (range <= 2.0) ? QString::number(val, 'f', 1) : QString::number((int)val);
 		p.drawText(QRectF(0, y - 8, MARGIN_LEFT - 5, 16),
 				   Qt::AlignRight | Qt::AlignVCenter, label);
 	}
@@ -102,10 +114,11 @@ void IC18599DayProfileWidget::paintEvent(QPaintEvent * /*event*/) {
 	// Bars (168 total)
 	double barW = pa.width() / 168.0;
 	for (int h = 0; h < 168; ++h) {
-		double val = std::max(0.0, std::min(m_maxValue, m_weekValues[(size_t)h]));
-		if (val <= 0)
+		double val = std::max(m_minValue, std::min(m_maxValue, m_weekValues[(size_t)h]));
+		double fraction = (val - m_minValue) / range;
+		if (fraction <= 0)
 			continue;
-		double barH = pa.height() * val / m_maxValue;
+		double barH = pa.height() * fraction;
 		double x = pa.left() + h * barW;
 		double y = pa.bottom() - barH;
 
@@ -150,7 +163,9 @@ void IC18599DayProfileWidget::mousePressEvent(QMouseEvent *event) {
 	if (h < 0)
 		return;
 
-	double pct = std::round(pctFromPos(event->position()));
+	double pct = pctFromPos(event->position());
+	pct = std::round(pct);
+	pct = std::max(m_minValue, std::min(m_maxValue, pct));
 	m_weekValues[(size_t)h] = pct;
 	m_selectedDays.clear();
 	m_selectedDays.push_back(h / 24);
@@ -169,7 +184,9 @@ void IC18599DayProfileWidget::mouseMoveEvent(QMouseEvent *event) {
 	if (h < 0)
 		return;
 
-	double pct = std::round(pctFromPos(event->position()));
+	double pct = pctFromPos(event->position());
+	pct = std::round(pct);
+	pct = std::max(m_minValue, std::min(m_maxValue, pct));
 	m_weekValues[(size_t)h] = pct;
 	update();
 	emit barClicked(h, pct);

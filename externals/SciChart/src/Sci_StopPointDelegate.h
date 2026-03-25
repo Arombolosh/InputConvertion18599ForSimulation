@@ -1,0 +1,45 @@
+/*	Authors: H. Fechner, A. Nicolai
+
+	This file is part of the SciChart Library.
+	All rights reserved.
+
+	This software is copyrighted by the principle author(s).
+	The right to reproduce the work (copy all or part of the source code),
+	modify the source code or documentation, compile it to form object code,
+	and the sole right to copy the object code thereby produced is hereby
+	retained for the author(s) unless explicitely granted by the author(s).
+
+*/
+
+#ifndef Sci_StopPointDelegateH
+#define Sci_StopPointDelegateH
+
+#include <QStyledItemDelegate>
+
+namespace SCI {
+
+/*! Delegate class to show color map stop point in table widget. */
+class StopPointDelegate : public QStyledItemDelegate
+{
+	Q_OBJECT
+public:
+	explicit StopPointDelegate(QObject *parent = 0);
+
+	QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+						  const QModelIndex &index) const;
+
+	void setEditorData(QWidget *editor, const QModelIndex &index) const;
+	void setModelData(QWidget *editor, QAbstractItemModel *model,
+					  const QModelIndex &index) const;
+
+	void updateEditorGeometry(QWidget *editor,
+	const QStyleOptionViewItem &option, const QModelIndex &index) const;
+
+	QString displayText(const QVariant &value, const QLocale &locale) const;
+
+};
+
+} //namespace SCI {
+
+
+#endif // Sci_StopPointDelegateH

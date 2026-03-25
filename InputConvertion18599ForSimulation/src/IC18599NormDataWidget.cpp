@@ -166,7 +166,7 @@ QStringList IC18599NormDataWidget::profileNames() const {
 }
 
 
-double IC18599NormDataWidget::getProfileValue(const QString &profileName, const QString &paramName) const {
+QString IC18599NormDataWidget::getProfileString(const QString &profileName, const QString &paramName) const {
 	// Find the column for this profile
 	int profCol = -1;
 	for (int c = 1; c < m_tableWidget->columnCount(); ++c) {
@@ -177,21 +177,27 @@ double IC18599NormDataWidget::getProfileValue(const QString &profileName, const 
 		}
 	}
 	if (profCol < 0)
-		return 0.0;
+		return {};
 
 	// Find the row with this parameter name
 	for (int r = 0; r < m_tableWidget->rowCount(); ++r) {
 		QTableWidgetItem *item = m_tableWidget->item(r, 0);
 		if (item && item->text().trimmed() == paramName) {
 			QTableWidgetItem *valItem = m_tableWidget->item(r, profCol);
-			if (valItem) {
-				bool ok;
-				double val = valItem->text().toDouble(&ok);
-				if (ok)
-					return val;
-			}
-			return 0.0;
+			if (valItem)
+				return valItem->text().trimmed();
+			return {};
 		}
 	}
-	return 0.0;
+	return {};
+}
+
+
+double IC18599NormDataWidget::getProfileValue(const QString &profileName, const QString &paramName) const {
+	QString s = getProfileString(profileName, paramName);
+	if (s.isEmpty())
+		return 0.0;
+	bool ok;
+	double val = s.toDouble(&ok);
+	return ok ? val : 0.0;
 }

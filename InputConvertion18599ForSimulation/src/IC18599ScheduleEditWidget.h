@@ -2,21 +2,42 @@
 #define IC18599ScheduleEditWidgetH
 
 #include <QWidget>
+#include <QColor>
 #include <vector>
 #include <set>
 
-class QTableWidget;
-class QLabel;
 class QCheckBox;
-class QToolButton;
-class QVBoxLayout;
 class IC18599DayProfileWidget;
 
-/*! A daily cycle group: a set of days sharing one 24h profile. */
+namespace Ui {
+	class IC18599ScheduleEditWidget;
+}
+
+/*! A daily cycle group: a set of days sharing one 24h profile.
+	Supports multiple channels (e.g. occupancy + activity).
+	m_values[channel][hour], each inner vector has 24 elements.
+*/
 struct DailyCycleGroup {
-	std::set<int>			m_days;			///< assigned days (0=Mo..6=So)
-	std::vector<double>		m_values;		///< 24 hourly percent values (0..100)
-	DailyCycleGroup() : m_values(24, 0.0) {}
+	std::set<int>							m_days;		///< assigned days (0=Mo..6=So)
+	std::vector<std::vector<double>>		m_values;	///< m_values[channel][hour]
+	DailyCycleGroup() : m_values(1, std::vector<double>(24, 0.0)) {}
+
+	int channelCount() const { return (int)m_values.size(); }
+	void ensureChannelCount(int n, double defaultVal = 0.0) {
+		while ((int)m_values.size() < n)
+			m_values.push_back(std::vector<double>(24, defaultVal));
+	}
+};
+
+
+/*! Defines one editable channel in a schedule widget. */
+struct ScheduleChannel {
+	QString name;			///< Chart title, e.g. "Occupancy"
+	QString unitLabel;		///< Table header + Y-axis, e.g. "[%]"
+	QColor  barColor;
+	double  minVal     = 0.0;
+	double  maxVal     = 100.0;
+	double  defaultVal = 0.0;
 };
 
 
@@ -27,15 +48,46 @@ struct DailyCycleGroup {
 class IC18599ScheduleEditWidget : public QWidget {
 	Q_OBJECT
 public:
+	/*! Default constructor for Qt Designer promoted widget usage. */
+	explicit IC18599ScheduleEditWidget(QWidget *parent = nullptr);
+
+	/*! Creates a schedule edit widget.
+		\param title		Displayed title text.
+		\param barColor		Color for bars in the chart.
+		\param unitLabel	Column header / Y-axis label, e.g. "[%]" or "[°C]".
+		\param minVal		Minimum allowed value (default 0).
+		\param maxVal		Maximum allowed value (default 100).
+		\param defaultVal	Default value for new groups (default 0).
+	*/
 	explicit IC18599ScheduleEditWidget(const QString &title,
 									   const QColor &barColor,
-									   QWidget *parent = nullptr);
+									   QWidget *parent,
+									   const QString &unitLabel = "[%]",
+									   double minVal = 0.0,
+									   double maxVal = 100.0,
+									   double defaultVal = 0.0);
 
-	/*! Returns 168 weekly percent values assembled from all groups. */
-	std::vector<double> weekValues() const;
+	~IC18599ScheduleEditWidget();
 
-	/*! Returns 8760 annual values (week repeated). */
-	std::vector<double> annualValues() const;
+	/*! Configures the widget with multiple channels.
+		Must be called exactly once after default construction.
+	*/
+	void configure(const QString &title, const std::vector<ScheduleChannel> &channels);
+
+	/*! Convenience: single-channel configure (wraps multi-channel version). */
+	void configure(const QString &title, const QColor &barColor,
+				   const QString &unitLabel = "[%]",
+				   double minVal = 0.0, double maxVal = 100.0,
+				   double defaultVal = 0.0);
+
+	/*! Returns 168 weekly values assembled from all groups for a given channel. */
+	std::vector<double> weekValues(int channel = 0) const;
+
+	/*! Returns 8760 annual values (week repeated) for a given channel. */
+	std::vector<double> annualValues(int channel = 0) const;
+
+	/*! Returns number of configured channels. */
+	int channelCount() const { return (int)m_channels.size(); }
 
 	/*! Returns the current daily cycle groups. */
 	const std::vector<DailyCycleGroup>& groups() const { return m_groups; }
@@ -48,14 +100,14 @@ public:
 
 	/*! Sets data for a result chart. */
 	void setResultData(int idx, const std::vector<double> &weekValues,
-					   const QString &yLabel, const QColor &color);
+					   const QString &title, const QString &yLabel, const QColor &color);
 
 signals:
 	void valuesChanged();
 
 private slots:
 	void onTableCellChanged(int row, int col);
-	void onBarClicked(int weekHour, double valuePct);
+	void onBarClicked(int channel, int weekHour, double valuePct);
 	void onDayCheckChanged(int dayIndex);
 	void onForward();
 	void onBackward();
@@ -63,7 +115,6 @@ private slots:
 	void onDeleteGroup();
 
 private:
-	void setupUI(const QString &title, const QColor &barColor);
 	void updateUI();
 	void updateTableFromGroup();
 	void updateChartFromValues();
@@ -71,23 +122,16 @@ private:
 	void updateGroupLabel();
 	std::vector<int> unassignedDays() const;
 
-	IC18599DayProfileWidget				*m_chartWidget = nullptr;
-	std::vector<IC18599DayProfileWidget*>	m_resultCharts;
-	QVBoxLayout							*m_mainLayout = nullptr;
-	QTableWidget						*m_tableWidget = nullptr;
-	QCheckBox							*m_dayChecks[7] = {};
-	QToolButton							*m_btnBackward = nullptr;
-	QToolButton							*m_btnForward = nullptr;
-	QToolButton							*m_btnAdd = nullptr;
-	QToolButton							*m_btnDelete = nullptr;
-	QLabel								*m_groupLabel = nullptr;
-	QLabel								*m_validLabel = nullptr;
-	QLabel								*m_infoLabel = nullptr;
+	Ui::IC18599ScheduleEditWidget			*m_ui = nullptr;
+	QCheckBox								*m_dayChecks[7] = {};
+	std::vector<ScheduleChannel>			m_channels;			///< channel definitions
+	std::vector<IC18599DayProfileWidget*>	m_editCharts;		///< one editable chart per channel
+	std::vector<IC18599DayProfileWidget*>	m_resultCharts;		///< read-only result charts
 
-	std::vector<DailyCycleGroup>		m_groups;
-	int									m_currentGroupIdx = 0;
-	bool								m_blockSignals = false;
-	QColor								m_barColor;
+	std::vector<DailyCycleGroup>			m_groups;
+	int										m_currentGroupIdx = 0;
+	bool									m_blockSignals = false;
+	bool									m_configured = false;
 };
 
 #endif // IC18599ScheduleEditWidgetH

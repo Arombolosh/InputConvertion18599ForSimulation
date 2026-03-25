@@ -13,6 +13,8 @@ struct ProfileScheduleData {
 	std::vector<DailyCycleGroup>	m_personGroups;
 	std::vector<DailyCycleGroup>	m_equipmentGroups;
 	std::vector<DailyCycleGroup>	m_lightingGroups;
+	std::vector<DailyCycleGroup>	m_heatingGroups;
+	std::vector<DailyCycleGroup>	m_coolingGroups;
 };
 
 

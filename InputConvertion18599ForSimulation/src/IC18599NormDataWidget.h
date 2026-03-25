@@ -23,6 +23,11 @@ public:
 		Returns 0.0 if not found. */
 	double getProfileValue(const QString &profileName, const QString &paramName) const;
 
+	/*! Returns a string value for a given profile and parameter name.
+		Useful for non-numeric values like time strings ("07:00").
+		Returns empty string if not found. */
+	QString getProfileString(const QString &profileName, const QString &paramName) const;
+
 private:
 	void setupUI();
 

@@ -22,6 +22,26 @@ ProfileScheduleData & IC18599Project::getOrCreateProfile(const QString &name) {
 		data.m_personGroups.push_back(weekend);
 		data.m_equipmentGroups.push_back(weekend);
 		data.m_lightingGroups.push_back(weekend);
+
+		// Heating/Cooling default: 20°C weekdays, 18°C weekend (heating) / 26°C (cooling)
+		DailyCycleGroup heatingWeekdays;
+		heatingWeekdays.m_days = {0, 1, 2, 3, 4};
+		heatingWeekdays.m_values = {std::vector<double>(24, 20.0)};
+		DailyCycleGroup heatingWeekend;
+		heatingWeekend.m_days = {5, 6};
+		heatingWeekend.m_values = {std::vector<double>(24, 18.0)};
+		data.m_heatingGroups.push_back(heatingWeekdays);
+		data.m_heatingGroups.push_back(heatingWeekend);
+
+		DailyCycleGroup coolingWeekdays;
+		coolingWeekdays.m_days = {0, 1, 2, 3, 4};
+		coolingWeekdays.m_values = {std::vector<double>(24, 26.0)};
+		DailyCycleGroup coolingWeekend;
+		coolingWeekend.m_days = {5, 6};
+		coolingWeekend.m_values = {std::vector<double>(24, 26.0)};
+		data.m_coolingGroups.push_back(coolingWeekdays);
+		data.m_coolingGroups.push_back(coolingWeekend);
+
 		m_profiles[name] = data;
 	}
 	return m_profiles[name];
@@ -40,15 +60,17 @@ static TiXmlElement * writeGroupXML(const DailyCycleGroup &grp) {
 	}
 	e->SetAttribute("days", daysStr);
 
-	// values as space-separated text
-	std::stringstream ss;
-	for (size_t i = 0; i < grp.m_values.size(); ++i) {
-		if (i > 0) ss << " ";
-		ss << grp.m_values[i];
+	// One <Values> element per channel
+	for (const auto &channelVals : grp.m_values) {
+		std::stringstream ss;
+		for (size_t i = 0; i < channelVals.size(); ++i) {
+			if (i > 0) ss << " ";
+			ss << channelVals[i];
+		}
+		TiXmlElement *valElem = new TiXmlElement("Values");
+		valElem->LinkEndChild(new TiXmlText(ss.str()));
+		e->LinkEndChild(valElem);
 	}
-	TiXmlElement *valElem = new TiXmlElement("Values");
-	valElem->LinkEndChild(new TiXmlText(ss.str()));
-	e->LinkEndChild(valElem);
 
 	return e;
 }
@@ -98,9 +120,18 @@ static std::vector<DailyCycleGroup> readScheduleXML(const TiXmlElement *schedEle
 		const char *daysAttr = grpElem->Attribute("days");
 		if (daysAttr)
 			grp.m_days = parseDays(daysAttr);
+
+		// Collect all <Values> children (one per channel)
+		grp.m_values.clear();
 		const TiXmlElement *valElem = grpElem->FirstChildElement("Values");
-		if (valElem && valElem->GetText())
-			grp.m_values = parseValues(valElem->GetText());
+		while (valElem) {
+			if (valElem->GetText())
+				grp.m_values.push_back(parseValues(valElem->GetText()));
+			valElem = valElem->NextSiblingElement("Values");
+		}
+		if (grp.m_values.empty())
+			grp.m_values.push_back(std::vector<double>(24, 0.0)); // fallback
+
 		groups.push_back(grp);
 		grpElem = grpElem->NextSiblingElement("DailyCycleGroup");
 	}
@@ -138,6 +169,8 @@ bool IC18599Project::save(const QString &filePath) const {
 		profElem->LinkEndChild(writeScheduleXML("PersonSchedule", it->m_personGroups));
 		profElem->LinkEndChild(writeScheduleXML("EquipmentSchedule", it->m_equipmentGroups));
 		profElem->LinkEndChild(writeScheduleXML("LightingSchedule", it->m_lightingGroups));
+		profElem->LinkEndChild(writeScheduleXML("HeatingSchedule", it->m_heatingGroups));
+		profElem->LinkEndChild(writeScheduleXML("CoolingSchedule", it->m_coolingGroups));
 
 		profilesElem->LinkEndChild(profElem);
 	}
@@ -190,6 +223,14 @@ bool IC18599Project::load(const QString &filePath) {
 				const TiXmlElement *lightElem = profElem->FirstChildElement("LightingSchedule");
 				if (lightElem)
 					data.m_lightingGroups = readScheduleXML(lightElem);
+
+				const TiXmlElement *heatElem = profElem->FirstChildElement("HeatingSchedule");
+				if (heatElem)
+					data.m_heatingGroups = readScheduleXML(heatElem);
+
+				const TiXmlElement *coolElem = profElem->FirstChildElement("CoolingSchedule");
+				if (coolElem)
+					data.m_coolingGroups = readScheduleXML(coolElem);
 
 				m_profiles[name] = data;
 			}

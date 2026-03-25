@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<PostProcColorMap xmlns="http://www.bauklimatik-dresden.de" xmlns:IBK="http://www.bauklimatik-dresden.de/IBK" xsi:schemaLocation="http://www.bauklimatik-dresden.de PostProcColorMap.xsd" fileVersion="1.0">
+	<ColorMap>
+		<Type>LinearMap</Type>
+		<ColorStops>
+			<ColorStop index="0" position="0.00000" color="#9e0142" />
+			<ColorStop index="1" position="0.03448" color="#b11646" />
+			<ColorStop index="2" position="0.06897" color="#c42b4b" />
+			<ColorStop index="3" position="0.10345" color="#d6404f" />
+			<ColorStop index="4" position="0.13793" color="#e1504a" />
+			<ColorStop index="5" position="0.17241" color="#eb6046" />
+			<ColorStop index="6" position="0.20690" color="#f57145" />
+			<ColorStop index="7" position="0.24138" color="#f8884f" />
+			<ColorStop index="8" position="0.27586" color="#fb9e5a" />
+			<ColorStop index="9" position="0.31034" color="#fdb365" />
+			<ColorStop index="10" position="0.34483" color="#fdc474" />
+			<ColorStop index="11" position="0.37931" color="#fed682" />
+			<ColorStop index="12" position="0.41379" color="#fee492" />
+			<ColorStop index="13" position="0.44828" color="#feefa4" />
+			<ColorStop index="14" position="0.48276" color="#fffab6" />
+			<ColorStop index="15" position="0.51724" color="#fbfdb8" />
+			<ColorStop index="16" position="0.55172" color="#f2faab" />
+			<ColorStop index="17" position="0.58621" color="#e9f69d" />
+			<ColorStop index="18" position="0.62069" color="#daf09a" />
+			<ColorStop index="19" position="0.65517" color="#c5e89f" />
+			<ColorStop index="20" position="0.68966" color="#b1dfa3" />
+			<ColorStop index="21" position="0.72414" color="#9ad6a4" />
+			<ColorStop index="22" position="0.75862" color="#83cda5" />
+			<ColorStop index="23" position="0.79310" color="#6bc4a5" />
+			<ColorStop index="24" position="0.82759" color="#58b2ac" />
+			<ColorStop index="25" position="0.86207" color="#469eb4" />
+			<ColorStop index="26" position="0.89655" color="#348abc" />
+			<ColorStop index="27" position="0.93103" color="#4076b5" />
+			<ColorStop index="28" position="0.96552" color="#4f63ab" />
+			<ColorStop index="29" position="1.00000" color="#5e4fa2" />
+		</ColorStops>
+		<AlphaColor>#000000</AlphaColor>
+	</ColorMap>
+</PostProcColorMap>

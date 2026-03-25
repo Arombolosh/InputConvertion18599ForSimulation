@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>QtExt::ReportPreview</class>
+ <widget class="QDialog" name="QtExt::ReportPreview">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1046</width>
+    <height>722</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Input Report 1D</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_4">
+   <item>
+    <layout class="QHBoxLayout" name="mainLayout">
+     <item>
+      <widget class="QWidget" name="widgetPreview" native="true">
+       <property name="minimumSize">
+        <size>
+         <width>250</width>
+         <height>0</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolBox" name="toolBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>200</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="pageGeneralAppearance">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>228</width>
+          <height>648</height>
+         </rect>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>200</width>
+          <height>0</height>
+         </size>
+        </property>
+        <attribute name="label">
+         <string>General Appearance</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <widget class="QCheckBox" name="checkBoxHeader">
+           <property name="text">
+            <string>Header</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxFooter">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Footer</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxPageNumbers">
+           <property name="text">
+            <string>Page numbers in footer</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBoxFont">
+           <property name="title">
+            <string>Font</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_2">
+            <item row="0" column="0">
+             <widget class="QFontComboBox" name="fontComboBoxFont"/>
+            </item>
+            <item row="1" column="0">
+             <widget class="QComboBox" name="comboBoxFontSize"/>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QPushButton" name="pushButtonPrint">
+       <property name="text">
+        <string>Print ...</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>:/gfx/print.png</normaloff>:/gfx/print.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonWritePdf">
+       <property name="text">
+        <string>Write pdf ...</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>:/gfx/filesave_24x24.png</normaloff>:/gfx/filesave_24x24.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonPageSetup">
+       <property name="text">
+        <string>Page Setup ...</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>:/gfx/page_setup_32x32.png</normaloff>:/gfx/page_setup_32x32.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonZoomIn">
+       <property name="toolTip">
+        <string>Zoom in in prieview</string>
+       </property>
+       <property name="text">
+        <string notr="true">Zoom in</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>:/gfx/zoomin.png</normaloff>:/gfx/zoomin.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonZoomOut">
+       <property name="toolTip">
+        <string>Zoom out in preview</string>
+       </property>
+       <property name="text">
+        <string>Zoom out</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>:/gfx/zoomout.png</normaloff>:/gfx/zoomout.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBoxZoomOptions"/>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonExportPage">
+       <property name="toolTip">
+        <string>Export current page to pdf file</string>
+       </property>
+       <property name="text">
+        <string>Export page ...</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>:/gfx/export_24x24.png</normaloff>:/gfx/export_24x24.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonClose">
+       <property name="text">
+        <string>Close</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

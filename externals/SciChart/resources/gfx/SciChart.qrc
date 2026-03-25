@@ -1,0 +1,38 @@
+<RCC>
+    <qresource prefix="/">
+        <file>ColorMapPresets/black_gray_white.png</file>
+        <file>ColorMapPresets/blue_yellow_red.png</file>
+        <file>ColorMapPresets/red_purple_blue.png</file>
+        <file>ColorMapPresets/red_yellow_blue.png</file>
+        <file>PostProcColormaps/jet.p2colormap</file>
+        <file>PostProcColormaps/jet_30.p2colormap</file>
+        <file>PostProcColormaps/jet_50.p2colormap</file>
+        <file>PostProcColormaps/jet_100.p2colormap</file>
+        <file>PostProcColormaps/jet_300.p2colormap</file>
+        <file>PostProcColormaps/plasma.p2colormap</file>
+        <file>PostProcColormaps/plasma_30.p2colormap</file>
+        <file>PostProcColormaps/plasma_50.p2colormap</file>
+        <file>PostProcColormaps/plasma_100.p2colormap</file>
+        <file>PostProcColormaps/plasma_300.p2colormap</file>
+        <file>PostProcColormaps/rainbow.p2colormap</file>
+        <file>PostProcColormaps/rainbow_30.p2colormap</file>
+        <file>PostProcColormaps/rainbow_50.p2colormap</file>
+        <file>PostProcColormaps/rainbow_100.p2colormap</file>
+        <file>PostProcColormaps/rainbow_300.p2colormap</file>
+        <file>PostProcColormaps/Spectral.p2colormap</file>
+        <file>PostProcColormaps/Spectral_30.p2colormap</file>
+        <file>PostProcColormaps/Spectral_50.p2colormap</file>
+        <file>PostProcColormaps/Spectral_100.p2colormap</file>
+        <file>PostProcColormaps/Spectral_300.p2colormap</file>
+        <file>PostProcColormaps/turbo.p2colormap</file>
+        <file>PostProcColormaps/turbo_30.p2colormap</file>
+        <file>PostProcColormaps/turbo_50.p2colormap</file>
+        <file>PostProcColormaps/turbo_100.p2colormap</file>
+        <file>PostProcColormaps/turbo_300.p2colormap</file>
+        <file>PostProcColormaps/viridis.p2colormap</file>
+        <file>PostProcColormaps/viridis_30.p2colormap</file>
+        <file>PostProcColormaps/viridis_50.p2colormap</file>
+        <file>PostProcColormaps/viridis_100.p2colormap</file>
+        <file>PostProcColormaps/viridis_300.p2colormap</file>
+    </qresource>
+</RCC>

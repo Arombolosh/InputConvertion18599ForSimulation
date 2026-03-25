@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" viewBox="0 0 7.6799 7.6799" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+ <defs>
+  <style>.a{fill:none;}.b{clip-path:url(#a);}.c{fill:#1475bb;}.d{fill:#0075c3;}.e{fill:#d1cdcd;fill-rule:evenodd;}.f{fill:#eb992f;}.g{fill:#c0392b;}.h{fill:#068f55;}</style>
+  <clipPath id="a">
+   <rect class="a" x="-3e-4" width="7.6799" height="7.6802"/>
+  </clipPath>
+ </defs>
+ <title>haukehirsch-1</title>
+ <g class="b" clip-path="url(#a)">
+  <path class="c" d="m6.7197 1.2004-5.8339-0.015193c-0.31752-0.00205-0.31825-0.47842 0-0.48047l5.8339 0.015193c0.31825 0.002053 0.31825 0.47842 0 0.48047z"/>
+  <path class="d" d="m0.88576 4.5443c-0.31899-0.00169-0.32013-0.48165 0-0.4802l3.3441 0.015193-0.4802 0.4802z"/>
+  <path class="d" d="m0.88576 2.8639c-0.32159-0.00108-0.32161-0.48107 0-0.4801l5.0301 0.015193c-0.0241 0.0201-0.047 0.0411-0.0692 0.0632l-0.4169 0.4169z"/>
+  <path class="e" d="M3.0056,5.9655l-.345,1.3972a.22019.22019,0,0,0,.2974.2974l1.3969-.345c1.3844-1.3845,1.7759-1.7756,3.16-3.1601a.42251.42251,0,0,0,.0854-.5757l-.8589-.8589a.42289.42289,0,0,0-.5758.0853Z" fill="#0075c3"/>
+ </g>
+ <metadata>
+  <rdf:RDF>
+   <cc:Work rdf:about="">
+    <dc:title>haukehirsch-1</dc:title>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+</svg>
