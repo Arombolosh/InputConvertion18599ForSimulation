@@ -3,3 +3,5 @@
 **/Makefile
 **/release/
 externals/lib/
+/data/UserProfileReport.pdf
+/data/test.pdf
