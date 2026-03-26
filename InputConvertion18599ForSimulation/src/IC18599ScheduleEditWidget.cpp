@@ -506,3 +506,13 @@ void IC18599ScheduleEditWidget::setResultData(int idx, const std::vector<double>
 	chart->setBarColor(color);
 	chart->setWeekValues(weekValues);
 }
+
+
+IC18599DayProfileWidget* IC18599ScheduleEditWidget::resultChart(int idx) const {
+	return (idx >= 0 && idx < (int)m_resultCharts.size()) ? m_resultCharts[(size_t)idx] : nullptr;
+}
+
+
+IC18599DayProfileWidget* IC18599ScheduleEditWidget::editChart(int channel) const {
+	return (channel >= 0 && channel < (int)m_editCharts.size()) ? m_editCharts[(size_t)channel] : nullptr;
+}

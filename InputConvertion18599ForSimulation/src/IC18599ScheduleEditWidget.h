@@ -102,6 +102,12 @@ public:
 	void setResultData(int idx, const std::vector<double> &weekValues,
 					   const QString &title, const QString &yLabel, const QColor &color);
 
+	/*! Returns result chart widget at given index, or nullptr. */
+	IC18599DayProfileWidget* resultChart(int idx) const;
+
+	/*! Returns editable chart widget for given channel, or nullptr. */
+	IC18599DayProfileWidget* editChart(int channel) const;
+
 signals:
 	void valuesChanged();
 

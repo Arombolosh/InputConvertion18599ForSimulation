@@ -3,7 +3,10 @@
 
 #include <QtExt_Report.h>
 
+#include <vector>
+
 #include "IC18599ReportSettings.h"
+#include "IC18599ReportFrameProfilePage.h"
 
 class IC18599Project;
 
@@ -15,8 +18,13 @@ public:
 	void set(QtExt::ReportData *data) override;
 	void setFrames() override;
 
-	IC18599Project		*m_project = nullptr;
-	QString				m_currentProfile;
+	/*! Sets profile data for multi-profile report. */
+	void setProfileData(const std::vector<ReportProfileData> &profiles);
+
+	IC18599Project				*m_project = nullptr;
+
+private:
+	std::vector<ReportProfileData>	m_profiles;
 };
 
 #endif // IC18599ReportH

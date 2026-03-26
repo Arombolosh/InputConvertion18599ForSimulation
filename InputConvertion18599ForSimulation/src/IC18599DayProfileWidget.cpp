@@ -51,64 +51,82 @@ double IC18599DayProfileWidget::pctFromPos(const QPointF &pos) const {
 void IC18599DayProfileWidget::paintEvent(QPaintEvent * /*event*/) {
 	QPainter p(this);
 	p.setRenderHint(QPainter::Antialiasing, false);
+	paintChart(&p, rect(), true);
+}
 
-	QRectF pa = plotArea();
+
+void IC18599DayProfileWidget::paintChart(QPainter *p, const QRect &rect, bool showSelection) const {
+	double sx = rect.width() / 900.0;
+
+	int ml = (int)(MARGIN_LEFT * sx);
+	int mr = (int)(MARGIN_RIGHT * sx);
+	int mb = (int)(MARGIN_BOTTOM * sx);
+	int mt = (int)(marginTop() * sx);
+
+	QRectF pa(rect.left() + ml, rect.top() + mt,
+			  rect.width() - ml - mr,
+			  rect.height() - mt - mb);
 
 	// Background
-	p.fillRect(rect(), palette().window());
-	p.fillRect(pa.toRect(), QColor(250, 250, 250));
+	if (showSelection)
+		p->fillRect(rect, palette().window());
+	else
+		p->fillRect(rect, Qt::white);
+	p->fillRect(pa.toRect(), QColor(250, 250, 250));
 
 	// Title above plot area
 	if (!m_title.isEmpty()) {
-		QFont titleFont(font().family(), 9, QFont::Bold);
-		p.setFont(titleFont);
-		p.setPen(Qt::black);
-		p.drawText(MARGIN_LEFT, 2, width() - MARGIN_LEFT - MARGIN_RIGHT, 16,
-				   Qt::AlignLeft | Qt::AlignTop, m_title);
+		QFont titleFont(font().family(), (int)(9 * sx), QFont::Bold);
+		p->setFont(titleFont);
+		p->setPen(Qt::black);
+		p->drawText(rect.left() + ml, rect.top() + (int)(2 * sx),
+					rect.width() - ml - mr, (int)(16 * sx),
+					Qt::AlignLeft | Qt::AlignTop, m_title);
 	}
 
 	// Day backgrounds (alternating)
 	double dayW = pa.width() / 7.0;
 	for (int d = 0; d < 7; ++d) {
-		bool selected = false;
-		for (int sd : m_selectedDays) {
-			if (sd == d) { selected = true; break; }
-		}
 		QRectF dayRect(pa.left() + d * dayW, pa.top(), dayW, pa.height());
-		if (selected) {
-			p.fillRect(dayRect.toRect(), QColor(220, 235, 255));
+		if (showSelection) {
+			bool selected = false;
+			for (int sd : m_selectedDays) {
+				if (sd == d) { selected = true; break; }
+			}
+			if (selected) {
+				p->fillRect(dayRect.toRect(), QColor(220, 235, 255));
+				continue;
+			}
 		}
-		else if (d >= 5) {
-			p.fillRect(dayRect.toRect(), QColor(255, 245, 240));
-		}
-		else if (d % 2 == 1) {
-			p.fillRect(dayRect.toRect(), QColor(245, 245, 245));
-		}
+		if (d >= 5)
+			p->fillRect(dayRect.toRect(), QColor(255, 245, 240));
+		else if (d % 2 == 1)
+			p->fillRect(dayRect.toRect(), QColor(245, 245, 245));
 	}
 
 	// Grid lines Y
 	QFont smallFont = font();
-	smallFont.setPointSize(8);
-	p.setFont(smallFont);
+	smallFont.setPointSize((int)(8 * sx));
+	p->setFont(smallFont);
 
 	double range = m_maxValue - m_minValue;
 	int numGridLines = 5;
 	for (int i = 0; i <= numGridLines; ++i) {
 		double val = m_minValue + range * i / numGridLines;
 		double y = pa.bottom() - pa.height() * i / numGridLines;
-		p.setPen(QPen(QColor(200, 200, 200), 1, Qt::DotLine));
-		p.drawLine(QPointF(pa.left(), y), QPointF(pa.right(), y));
-		p.setPen(Qt::black);
+		p->setPen(QPen(QColor(160, 160, 160), 1, Qt::SolidLine));
+		p->drawLine(QPointF(pa.left(), y), QPointF(pa.right(), y));
+		p->setPen(Qt::black);
 		QString label = (range <= 2.0) ? QString::number(val, 'f', 1) : QString::number((int)val);
-		p.drawText(QRectF(0, y - 8, MARGIN_LEFT - 5, 16),
-				   Qt::AlignRight | Qt::AlignVCenter, label);
+		p->drawText(QRectF(rect.left(), y - (int)(8 * sx), ml - (int)(5 * sx), (int)(16 * sx)),
+					Qt::AlignRight | Qt::AlignVCenter, label);
 	}
 
 	// Day separator lines
-	p.setPen(QPen(QColor(180, 180, 180), 1, Qt::SolidLine));
+	p->setPen(QPen(QColor(180, 180, 180), 1, Qt::SolidLine));
 	for (int d = 1; d < 7; ++d) {
 		double x = pa.left() + d * dayW;
-		p.drawLine(QPointF(x, pa.top()), QPointF(x, pa.bottom()));
+		p->drawLine(QPointF(x, pa.top()), QPointF(x, pa.bottom()));
 	}
 
 	// Bars (168 total)
@@ -123,36 +141,38 @@ void IC18599DayProfileWidget::paintEvent(QPaintEvent * /*event*/) {
 		double y = pa.bottom() - barH;
 
 		QColor col = m_barColor;
-		// Dim bars not in selected days
-		int day = h / 24;
-		bool daySelected = false;
-		for (int sd : m_selectedDays) {
-			if (sd == day) { daySelected = true; break; }
+		if (showSelection) {
+			// Dim bars not in selected days
+			int day = h / 24;
+			bool daySelected = false;
+			for (int sd : m_selectedDays) {
+				if (sd == day) { daySelected = true; break; }
+			}
+			if (!m_selectedDays.empty() && !daySelected)
+				col = col.lighter(150);
 		}
-		if (!m_selectedDays.empty() && !daySelected)
-			col = col.lighter(150);
 
-		p.setPen(Qt::NoPen);
-		p.setBrush(col);
-		p.drawRect(QRectF(x, y, std::max(barW - 0.5, 1.0), barH));
+		p->setPen(Qt::NoPen);
+		p->setBrush(col);
+		p->drawRect(QRectF(x, y, std::max(barW - 0.5, 1.0), barH));
 	}
 
 	// Day labels at bottom
-	p.setPen(Qt::black);
+	p->setPen(Qt::black);
 	QFont dayFont = font();
-	dayFont.setPointSize(9);
+	dayFont.setPointSize((int)(9 * sx));
 	dayFont.setBold(true);
-	p.setFont(dayFont);
+	p->setFont(dayFont);
 	for (int d = 0; d < 7; ++d) {
 		double x = pa.left() + d * dayW;
-		p.drawText(QRectF(x, pa.bottom() + 2, dayW, 20),
-				   Qt::AlignCenter, DAY_NAMES[d]);
+		p->drawText(QRectF(x, pa.bottom() + (int)(2 * sx), dayW, (int)(20 * sx)),
+					Qt::AlignCenter, DAY_NAMES[d]);
 	}
 
 	// Frame
-	p.setPen(QPen(Qt::black, 1));
-	p.setBrush(Qt::NoBrush);
-	p.drawRect(pa);
+	p->setPen(QPen(Qt::black, 1));
+	p->setBrush(Qt::NoBrush);
+	p->drawRect(pa);
 }
 
 

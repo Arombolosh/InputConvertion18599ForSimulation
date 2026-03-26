@@ -3,8 +3,11 @@
 
 #include "IC18599NormDataWidget.h"
 #include "IC18599ScheduleEditWidget.h"
+#include "IC18599DayProfileWidget.h"
 #include "IC18599Report.h"
 #include "IC18599ReportSettings.h"
+#include "IC18599ExportDialog.h"
+#include "IC18599ReportFrameProfilePage.h"
 
 #include <QCloseEvent>
 #include <QComboBox>
@@ -263,6 +266,25 @@ void IC18599MainWindow::onSaveProjectAs() {
 
 
 void IC18599MainWindow::onExportPDFReport() {
+	if (m_project.m_profileNames.empty()) {
+		QMessageBox::warning(this, tr("Export"), tr("No profiles available. Please load a CSV file first."));
+		return;
+	}
+
+	// Show profile selection dialog
+	QStringList profileNames;
+	for (const QString &name : m_project.m_profileNames)
+		profileNames.append(name);
+
+	IC18599ExportDialog dlg(profileNames, this);
+	if (dlg.exec() != QDialog::Accepted)
+		return;
+
+	QStringList selected = dlg.selectedProfiles();
+	if (selected.isEmpty())
+		return;
+
+	// Ask for output filename
 	QString fname = QFileDialog::getSaveFileName(this,
 		tr("Export PDF Report"),
 		QString(),
@@ -273,26 +295,75 @@ void IC18599MainWindow::onExportPDFReport() {
 	if (!fname.endsWith(".pdf", Qt::CaseInsensitive))
 		fname += ".pdf";
 
-	// Store current profile data before generating report
+	// Store current profile data before switching
 	storeCurrentProfileData();
+	QString originalProfile = m_project.m_currentProfile;
 
+	// Collect data for each selected profile
+	std::vector<ReportProfileData> profileDataVec;
+	int profileIdx = 0;
+	for (const QString &profName : selected) {
+		++profileIdx;
+		// Load profile and recalculate
+		loadProfileDataToWidgets(profName);
+		m_project.m_currentProfile = profName;
+		recalculateResults();
+
+		ReportProfileData pd;
+		pd.name = profName;
+		pd.profileIndex = profileIdx;
+
+		// Read result week values
+		IC18599DayProfileWidget *personResult = m_ui->m_personScheduleWidget->resultChart(0);
+		pd.personResultWeek = personResult ? personResult->weekValues() : std::vector<double>(168, 0.0);
+
+		IC18599DayProfileWidget *equipResult = m_ui->m_equipmentScheduleWidget->resultChart(0);
+		pd.equipResultWeek = equipResult ? equipResult->weekValues() : std::vector<double>(168, 0.0);
+
+		IC18599DayProfileWidget *lightResult = m_ui->m_lightingScheduleWidget->resultChart(0);
+		pd.lightResultWeek = lightResult ? lightResult->weekValues() : std::vector<double>(168, 0.0);
+
+		// Heating/cooling: read week values from edit charts (they are setpoint values, not %)
+		pd.heatingSetpointWeek = m_ui->m_heatingScheduleWidget->weekValues();
+		pd.coolingSetpointWeek = m_ui->m_coolingScheduleWidget->weekValues();
+
+		// Day groups for tables
+		pd.personGroups = m_ui->m_personScheduleWidget->groups();
+		pd.equipGroups = m_ui->m_equipmentScheduleWidget->groups();
+		pd.lightGroups = m_ui->m_lightingScheduleWidget->groups();
+		pd.heatingGroups = m_ui->m_heatingScheduleWidget->groups();
+		pd.coolingGroups = m_ui->m_coolingScheduleWidget->groups();
+
+		profileDataVec.push_back(pd);
+	}
+
+	// Restore original profile
+	if (!originalProfile.isEmpty()) {
+		loadProfileDataToWidgets(originalProfile);
+		m_project.m_currentProfile = originalProfile;
+		recalculateResults();
+	}
+
+	// Generate PDF report
 	IC18599ReportSettings settings;
 	IC18599Report report(&settings);
 
-	QString profile = m_project.m_currentProfile;
-	QtExt::ReportData2<IC18599Project, QString> data(&m_project, &profile);
+	QtExt::ReportData1<IC18599Project> data(&m_project);
 	report.set(&data);
+	report.setProfileData(profileDataVec);
 	report.setFrames();
 
 	QPrinter printer(QPrinter::HighResolution);
 	printer.setOutputFormat(QPrinter::PdfFormat);
 	printer.setOutputFileName(fname);
 	printer.setPageSize(QPageSize(QPageSize::A4));
+	printer.setPageMargins(QMarginsF(15, 15, 15, 15), QPageLayout::Millimeter);
 
 	QFont font = settings.m_defaultFont;
 	report.print(&printer, font);
 
-	m_ui->m_logWidget->appendPlainText(tr("PDF report exported: %1").arg(fname));
+	m_ui->m_logWidget->appendPlainText(tr("PDF report exported: %1 (%2 profiles)")
+		.arg(fname).arg(selected.size()));
 	statusBar()->showMessage(tr("Report exported: %1").arg(fname));
 }
 

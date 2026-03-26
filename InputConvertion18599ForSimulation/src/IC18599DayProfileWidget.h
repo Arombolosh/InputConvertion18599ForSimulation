@@ -57,6 +57,7 @@ protected:
 	void mouseMoveEvent(QMouseEvent *event) override;
 
 private:
+	void paintChart(QPainter *p, const QRect &rect, bool showSelection) const;
 	QRectF plotArea() const;
 	int hourFromPos(const QPointF &pos) const;
 	double pctFromPos(const QPointF &pos) const;
