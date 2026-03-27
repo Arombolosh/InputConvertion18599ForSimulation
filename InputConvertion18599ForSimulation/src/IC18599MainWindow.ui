@@ -116,6 +116,9 @@
     <addaction name="actionSave"/>
     <addaction name="actionSaveAs"/>
     <addaction name="actionExportPDF"/>
+    <addaction name="actionExportVicus"/>
+    <addaction name="actionExportVicusDB"/>
+    <addaction name="actionExportEnergyPlus"/>
     <addaction name="separator"/>
     <addaction name="actionLoadCSV"/>
     <addaction name="separator"/>
@@ -180,6 +183,21 @@
   <action name="actionExportPDF">
    <property name="text">
     <string>Export &amp;PDF Report...</string>
+   </property>
+  </action>
+  <action name="actionExportVicus">
+   <property name="text">
+    <string>Export to &amp;VICUS...</string>
+   </property>
+  </action>
+  <action name="actionExportVicusDB">
+   <property name="text">
+    <string>Export VICUS &amp;Database Files...</string>
+   </property>
+  </action>
+  <action name="actionExportEnergyPlus">
+   <property name="text">
+    <string>Export to &amp;EnergyPlus...</string>
    </property>
   </action>
   <action name="actionLoadCSV">

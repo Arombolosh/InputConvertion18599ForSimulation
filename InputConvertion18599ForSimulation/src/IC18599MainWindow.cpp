@@ -9,6 +9,8 @@
 #include "IC18599ExportDialog.h"
 #include "IC18599ReportFrameProfilePage.h"
 #include "IC18599SettingsDialog.h"
+#include "IC18599VicusExport.h"
+#include "IC18599EnergyPlusExport.h"
 
 #include <QCloseEvent>
 #include <QComboBox>
@@ -155,6 +157,9 @@ IC18599MainWindow::IC18599MainWindow(QWidget *parent) :
 	connect(m_ui->actionSave, &QAction::triggered, this, &IC18599MainWindow::onSaveProject);
 	connect(m_ui->actionSaveAs, &QAction::triggered, this, &IC18599MainWindow::onSaveProjectAs);
 	connect(m_ui->actionExportPDF, &QAction::triggered, this, &IC18599MainWindow::onExportPDFReport);
+	connect(m_ui->actionExportVicus, &QAction::triggered, this, &IC18599MainWindow::onExportVicus);
+	connect(m_ui->actionExportVicusDB, &QAction::triggered, this, &IC18599MainWindow::onExportVicusDbFiles);
+	connect(m_ui->actionExportEnergyPlus, &QAction::triggered, this, &IC18599MainWindow::onExportEnergyPlus);
 	connect(m_ui->actionLoadCSV, &QAction::triggered, this, &IC18599MainWindow::onLoadCSV);
 	connect(m_ui->actionQuit, &QAction::triggered, this, &IC18599MainWindow::onQuit);
 	connect(m_ui->actionLanguage, &QAction::triggered, this, &IC18599MainWindow::onLanguageSettings);
@@ -387,6 +392,233 @@ void IC18599MainWindow::onExportPDFReport() {
 	m_ui->m_logWidget->appendPlainText(tr("PDF report exported: %1 (%2 profiles)")
 		.arg(fname).arg(selected.size()));
 	statusBar()->showMessage(tr("Report exported: %1").arg(fname));
+}
+
+
+void IC18599MainWindow::onExportVicus() {
+	if (m_project.m_profileNames.empty()) {
+		QMessageBox::warning(this, tr("Export"), tr("No profiles available. Please load a CSV file first."));
+		return;
+	}
+
+	// Show profile selection dialog
+	QStringList profileNames;
+	for (const QString &name : m_project.m_profileNames)
+		profileNames.append(name);
+
+	IC18599ExportDialog dlg(profileNames, this);
+	if (dlg.exec() != QDialog::Accepted)
+		return;
+
+	QStringList selected = dlg.selectedProfiles();
+	if (selected.isEmpty())
+		return;
+
+	// Ask for target .vicus file
+	QString vicusPath = QFileDialog::getOpenFileName(this,
+		tr("Select VICUS File"),
+		QString(),
+		tr("VICUS Files (*.vicus);;All Files (*)"));
+	if (vicusPath.isEmpty())
+		return;
+
+	// Store current profile data before switching
+	storeCurrentProfileData();
+	QString originalProfile = m_project.m_currentProfile;
+
+	// Collect data for each selected profile
+	std::vector<VicusExportProfileData> profileDataVec;
+	for (const QString &profName : selected) {
+		// Load profile and recalculate
+		loadProfileDataToWidgets(profName);
+		m_project.m_currentProfile = profName;
+		recalculateResults();
+
+		VicusExportProfileData vpd;
+		vpd.name = profName;
+		vpd.personGroups = m_ui->m_personScheduleWidget->groups();
+		vpd.equipmentGroups = m_ui->m_equipmentScheduleWidget->groups();
+		vpd.lightingGroups = m_ui->m_lightingScheduleWidget->groups();
+		vpd.heatingGroups = m_ui->m_heatingScheduleWidget->groups();
+		vpd.coolingGroups = m_ui->m_coolingScheduleWidget->groups();
+
+		// Norm parameters
+		double maxOccDensity = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowMaxOccupancyDensity);
+		vpd.personPerArea = (maxOccDensity > 0) ? 1.0 / maxOccDensity : 0;
+		double equipPower = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowEquipmentPower);
+		vpd.equipmentPowerPerArea = (maxOccDensity > 0) ? equipPower / maxOccDensity : 0;
+
+		// Lighting power density (same formula as recalculateResults)
+		double maintIllum = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowMaintainedIlluminance);
+		double kA = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowReductionFactorKA);
+		double kVB = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowAdjustmentFactorKVB);
+		double roomK = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowRoomIndexK);
+		double pjlx = pjlxFromRoomIndex(roomK);
+		vpd.lightingPowerDensity = pjlx * maintIllum * (0.8 / 0.67) * kA * 0.53 * kVB;
+
+		profileDataVec.push_back(vpd);
+	}
+
+	// Restore original profile
+	if (!originalProfile.isEmpty()) {
+		loadProfileDataToWidgets(originalProfile);
+		m_project.m_currentProfile = originalProfile;
+		recalculateResults();
+	}
+
+	// Export to VICUS
+	if (exportToVicus(vicusPath, profileDataVec)) {
+		m_ui->m_logWidget->appendPlainText(tr("VICUS export successful: %1 (%2 profiles)")
+			.arg(vicusPath).arg(selected.size()));
+		statusBar()->showMessage(tr("VICUS export: %1").arg(vicusPath));
+	}
+	else {
+		m_ui->m_logWidget->appendPlainText(tr("Error exporting to VICUS: %1").arg(vicusPath));
+		QMessageBox::warning(this, tr("Export Error"),
+			tr("Could not export to the VICUS file. Check that the file is a valid .vicus XML file."));
+	}
+}
+
+
+void IC18599MainWindow::onExportVicusDbFiles() {
+	if (m_project.m_profileNames.empty()) {
+		QMessageBox::warning(this, tr("Export"), tr("No profiles available. Please load a CSV file first."));
+		return;
+	}
+
+	// Ask for output directory
+	QString outputDir = QFileDialog::getExistingDirectory(this,
+		tr("Select Output Directory for VICUS Database Files"));
+	if (outputDir.isEmpty())
+		return;
+
+	// Store current profile data before switching
+	storeCurrentProfileData();
+	QString originalProfile = m_project.m_currentProfile;
+
+	// Collect data for all profiles
+	std::vector<VicusExportProfileData> profileDataVec;
+	for (const QString &profName : m_project.m_profileNames) {
+		loadProfileDataToWidgets(profName);
+		m_project.m_currentProfile = profName;
+		recalculateResults();
+
+		VicusExportProfileData vpd;
+		vpd.name = profName;
+		vpd.personGroups = m_ui->m_personScheduleWidget->groups();
+		vpd.equipmentGroups = m_ui->m_equipmentScheduleWidget->groups();
+		vpd.lightingGroups = m_ui->m_lightingScheduleWidget->groups();
+		vpd.heatingGroups = m_ui->m_heatingScheduleWidget->groups();
+		vpd.coolingGroups = m_ui->m_coolingScheduleWidget->groups();
+
+		// Norm parameters
+		double maxOccDensity = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowMaxOccupancyDensity);
+		vpd.personPerArea = (maxOccDensity > 0) ? 1.0 / maxOccDensity : 0;
+		double equipPower = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowEquipmentPower);
+		vpd.equipmentPowerPerArea = (maxOccDensity > 0) ? equipPower / maxOccDensity : 0;
+
+		// Lighting power density
+		double maintIllum = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowMaintainedIlluminance);
+		double kA = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowReductionFactorKA);
+		double kVB = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowAdjustmentFactorKVB);
+		double roomK = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowRoomIndexK);
+		double pjlx = pjlxFromRoomIndex(roomK);
+		vpd.lightingPowerDensity = pjlx * maintIllum * (0.8 / 0.67) * kA * 0.53 * kVB;
+
+		profileDataVec.push_back(vpd);
+	}
+
+	// Restore original profile
+	if (!originalProfile.isEmpty()) {
+		loadProfileDataToWidgets(originalProfile);
+		m_project.m_currentProfile = originalProfile;
+		recalculateResults();
+	}
+
+	// Export database files
+	if (exportVicusDatabaseFiles(outputDir, profileDataVec)) {
+		m_ui->m_logWidget->appendPlainText(tr("VICUS database files exported to: %1 (%2 profiles)")
+			.arg(outputDir).arg(profileDataVec.size()));
+		statusBar()->showMessage(tr("VICUS DB files exported: %1").arg(outputDir));
+	}
+	else {
+		m_ui->m_logWidget->appendPlainText(tr("Error exporting VICUS database files to: %1").arg(outputDir));
+		QMessageBox::warning(this, tr("Export Error"),
+			tr("Could not export VICUS database files."));
+	}
+}
+
+
+void IC18599MainWindow::onExportEnergyPlus() {
+	if (m_project.m_profileNames.empty()) {
+		QMessageBox::warning(this, tr("Export"), tr("No profiles available. Please load a CSV file first."));
+		return;
+	}
+
+	// Ask for output IDF file
+	QString idfPath = QFileDialog::getSaveFileName(this,
+		tr("Export to EnergyPlus"),
+		QString(),
+		tr("EnergyPlus IDF Files (*.idf);;All Files (*)"));
+	if (idfPath.isEmpty())
+		return;
+	if (!idfPath.endsWith(".idf", Qt::CaseInsensitive))
+		idfPath += ".idf";
+
+	// Store current profile data before switching
+	storeCurrentProfileData();
+	QString originalProfile = m_project.m_currentProfile;
+
+	// Collect data for all profiles
+	std::vector<VicusExportProfileData> profileDataVec;
+	for (const QString &profName : m_project.m_profileNames) {
+		loadProfileDataToWidgets(profName);
+		m_project.m_currentProfile = profName;
+		recalculateResults();
+
+		VicusExportProfileData vpd;
+		vpd.name = profName;
+		vpd.personGroups = m_ui->m_personScheduleWidget->groups();
+		vpd.equipmentGroups = m_ui->m_equipmentScheduleWidget->groups();
+		vpd.lightingGroups = m_ui->m_lightingScheduleWidget->groups();
+		vpd.heatingGroups = m_ui->m_heatingScheduleWidget->groups();
+		vpd.coolingGroups = m_ui->m_coolingScheduleWidget->groups();
+
+		// Norm parameters
+		double maxOccDensity = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowMaxOccupancyDensity);
+		vpd.personPerArea = (maxOccDensity > 0) ? 1.0 / maxOccDensity : 0;
+		double equipPower = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowEquipmentPower);
+		vpd.equipmentPowerPerArea = (maxOccDensity > 0) ? equipPower / maxOccDensity : 0;
+
+		// Lighting power density
+		double maintIllum = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowMaintainedIlluminance);
+		double kA = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowReductionFactorKA);
+		double kVB = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowAdjustmentFactorKVB);
+		double roomK = m_ui->m_normDataWidget->getProfileValueByRow(profName, RowRoomIndexK);
+		double pjlx = pjlxFromRoomIndex(roomK);
+		vpd.lightingPowerDensity = pjlx * maintIllum * (0.8 / 0.67) * kA * 0.53 * kVB;
+
+		profileDataVec.push_back(vpd);
+	}
+
+	// Restore original profile
+	if (!originalProfile.isEmpty()) {
+		loadProfileDataToWidgets(originalProfile);
+		m_project.m_currentProfile = originalProfile;
+		recalculateResults();
+	}
+
+	// Export to EnergyPlus IDF
+	if (exportToEnergyPlus(idfPath, profileDataVec)) {
+		m_ui->m_logWidget->appendPlainText(tr("EnergyPlus IDF exported to: %1 (%2 profiles)")
+			.arg(idfPath).arg(profileDataVec.size()));
+		statusBar()->showMessage(tr("EnergyPlus exported: %1").arg(idfPath));
+	}
+	else {
+		m_ui->m_logWidget->appendPlainText(tr("Error exporting EnergyPlus IDF to: %1").arg(idfPath));
+		QMessageBox::warning(this, tr("Export Error"),
+			tr("Could not export EnergyPlus IDF file."));
+	}
 }
 
 

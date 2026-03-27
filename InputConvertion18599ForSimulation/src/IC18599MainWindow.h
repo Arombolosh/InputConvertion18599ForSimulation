@@ -34,6 +34,9 @@ private slots:
 	void onSaveProject();
 	void onSaveProjectAs();
 	void onExportPDFReport();
+	void onExportVicus();
+	void onExportVicusDbFiles();
+	void onExportEnergyPlus();
 	void onLoadCSV();
 	void onProfileChanged(const QString &profileName);
 	void onScheduleModified();

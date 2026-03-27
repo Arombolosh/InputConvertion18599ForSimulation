@@ -42,7 +42,9 @@ SOURCES += \
 	src/IC18599ReportFrameProfilePage.cpp \
 	src/IC18599ReportChartItem.cpp \
 	src/IC18599ExportDialog.cpp \
-	src/IC18599SettingsDialog.cpp
+	src/IC18599SettingsDialog.cpp \
+	src/IC18599VicusExport.cpp \
+	src/IC18599EnergyPlusExport.cpp
 
 HEADERS += \
 	src/IC18599MainWindow.h \
@@ -56,7 +58,9 @@ HEADERS += \
 	src/IC18599ReportFrameProfilePage.h \
 	src/IC18599ReportChartItem.h \
 	src/IC18599ExportDialog.h \
-	src/IC18599SettingsDialog.h
+	src/IC18599SettingsDialog.h \
+	src/IC18599VicusExport.h \
+	src/IC18599EnergyPlusExport.h
 
 FORMS += \
 	src/IC18599MainWindow.ui \
