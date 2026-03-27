@@ -7,14 +7,11 @@
 #include <QtExt_ReportFrameItemTextFrame.h>
 #include <QtExt_ReportFrameItemTable.h>
 
-#include <QDate>
-
 IC18599ReportFrameTitlePage::IC18599ReportFrameTitlePage(QtExt::Report *report, QTextDocument *textDocument,
 													   const std::vector<QString> &profileNames) :
 	QtExt::ReportFrameBase(report, textDocument),
 	m_title(textDocument),
 	m_subtitle(textDocument),
-	m_infoTable(textDocument, true),
 	m_tocHeading(textDocument),
 	m_tocTable(textDocument, true),
 	m_profileNames(profileNames)
@@ -34,21 +31,11 @@ void IC18599ReportFrameTitlePage::update(QPaintDevice *paintDevice, double width
 	addItem(new QtExt::ReportFrameItemTextFrame(&m_subtitle, paintDevice, width,
 												BOTTOM_DIST_H3));
 
-	// Info table: date and generation info
-	double tableWidth = 0.5 * width;
-	m_infoTable.set(2, 1, tableWidth, 0, 0, QColor(255, 255, 255));
-	m_infoTable.setColumnSizeFormat(0, QtExt::CellSizeFormater::Fixed, tableWidth);
-
-	m_infoTable.setCellText(0, 0, tr("Date: %1").arg(QDate::currentDate().toString(Qt::ISODate)));
-	m_infoTable.setCellText(0, 1, tr("Generated with IC18599"));
-
-	addItem(new QtExt::ReportFrameItemTable(&m_infoTable, paintDevice, tableWidth, 0, 0, true));
-
 	// Table of contents — lists profile names with enumeration
 	if (!m_profileNames.empty()) {
 		m_tocHeading.setText(TITLE_H3(tr("Table of Contents<hr>")));
 		addItem(new QtExt::ReportFrameItemTextFrame(&m_tocHeading, paintDevice, width,
-													BOTTOM_DIST_H3, TOP_DIST_H1));
+													BOTTOM_DIST_H3, 0));
 
 		// 2-column table: name (left) | page number (right)
 		// Alternating row background for visual tracking.

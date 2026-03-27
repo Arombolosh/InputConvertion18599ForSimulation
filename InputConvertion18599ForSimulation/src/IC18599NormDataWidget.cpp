@@ -52,20 +52,20 @@ bool IC18599NormDataWidget::loadCSV(const QString &fname) {
 	if (data.isEmpty())
 		return false;
 
+	// Store raw data for row-index based access
+	m_rawData = data;
+
 	// First row is header (Parameter; Zone1; Zone2; ...)
 	QStringList headerRow = data.first();
 
-	// Rows to hide from display (derived values computed from other rows)
-	QStringList hiddenParams = {
-		"Personenlast [W/m2]",
-		"Arbeitshilfen (Geräte) [W/m2]"
-	};
+	// Hide last 2 data rows (derived values: indices 40, 41 relative to first data row)
+	QSet<int> hiddenDataRows = {40, 41};
 
 	// Collect display rows (skip hidden parameters)
 	QVector<int> displayRows;  // indices into data (1-based, skipping header)
 	for (int r = 1; r < data.size(); ++r) {
-		QString paramName = data[r].isEmpty() ? QString() : data[r][0].trimmed();
-		if (!hiddenParams.contains(paramName))
+		int dataRowIdx = r - 1;  // 0-based data row index
+		if (!hiddenDataRows.contains(dataRowIdx))
 			displayRows.append(r);
 	}
 
@@ -156,45 +156,61 @@ bool IC18599NormDataWidget::loadCSV(const QString &fname) {
 
 
 QStringList IC18599NormDataWidget::profileNames() const {
+	if (m_rawData.isEmpty())
+		return {};
 	QStringList names;
-	for (int c = 1; c < m_tableWidget->columnCount(); ++c) {
-		QTableWidgetItem *item = m_tableWidget->horizontalHeaderItem(c);
-		if (item && !item->text().trimmed().isEmpty())
-			names << item->text().trimmed();
+	const QStringList &header = m_rawData.first();
+	for (int c = 1; c < header.size(); ++c) {
+		QString name = header[c].trimmed();
+		name.replace('_', ' ');
+		name = name.simplified();
+		if (!name.isEmpty())
+			names << name;
 	}
 	return names;
 }
 
 
-QString IC18599NormDataWidget::getProfileString(const QString &profileName, const QString &paramName) const {
-	// Find the column for this profile
-	int profCol = -1;
-	for (int c = 1; c < m_tableWidget->columnCount(); ++c) {
-		QTableWidgetItem *hdr = m_tableWidget->horizontalHeaderItem(c);
-		if (hdr && hdr->text().trimmed() == profileName) {
-			profCol = c;
-			break;
-		}
+int IC18599NormDataWidget::findProfileColumn(const QString &profileName) const {
+	if (m_rawData.isEmpty())
+		return -1;
+	const QStringList &header = m_rawData.first();
+	// Normalize the lookup name
+	QString normLookup = profileName;
+	normLookup.replace('_', ' ');
+	normLookup.replace('\n', ' ');
+	normLookup = normLookup.simplified();
+
+	for (int c = 1; c < header.size(); ++c) {
+		QString normHeader = header[c].trimmed();
+		normHeader.replace('_', ' ');
+		normHeader = normHeader.simplified();
+		if (normHeader == normLookup)
+			return c;
 	}
+	return -1;
+}
+
+
+QString IC18599NormDataWidget::getProfileStringByRow(const QString &profileName, int dataRowIndex) const {
+	int profCol = findProfileColumn(profileName);
 	if (profCol < 0)
 		return {};
 
-	// Find the row with this parameter name
-	for (int r = 0; r < m_tableWidget->rowCount(); ++r) {
-		QTableWidgetItem *item = m_tableWidget->item(r, 0);
-		if (item && item->text().trimmed() == paramName) {
-			QTableWidgetItem *valItem = m_tableWidget->item(r, profCol);
-			if (valItem)
-				return valItem->text().trimmed();
-			return {};
-		}
-	}
+	// dataRowIndex is 0-based; row 0 in m_rawData is the header, so offset by 1
+	int rawRow = dataRowIndex + 1;
+	if (rawRow < 0 || rawRow >= m_rawData.size())
+		return {};
+
+	const QStringList &fields = m_rawData[rawRow];
+	if (profCol < fields.size())
+		return fields[profCol].trimmed();
 	return {};
 }
 
 
-double IC18599NormDataWidget::getProfileValue(const QString &profileName, const QString &paramName) const {
-	QString s = getProfileString(profileName, paramName);
+double IC18599NormDataWidget::getProfileValueByRow(const QString &profileName, int dataRowIndex) const {
+	QString s = getProfileStringByRow(profileName, dataRowIndex);
 	if (s.isEmpty())
 		return 0.0;
 	bool ok;

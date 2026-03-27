@@ -8,6 +8,7 @@
 #include "IC18599ReportSettings.h"
 #include "IC18599ExportDialog.h"
 #include "IC18599ReportFrameProfilePage.h"
+#include "IC18599SettingsDialog.h"
 
 #include <QCloseEvent>
 #include <QComboBox>
@@ -20,7 +21,27 @@
 #include <QPrinter>
 #include <QTextStream>
 
-/*! Returns default day groupings based on "jährliche Nutzungszeit" from norm data.
+#include <QtExt_LanguageHandler.h>
+
+/*! Returns the specific electrical evaluation power p_j,lx [W/(m²·lx)]
+	by linear interpolation from the DIN 18599 table based on room index k. */
+static double pjlxFromRoomIndex(double k) {
+	static const double K[]    = { 0.6,   0.7,   0.8,   0.9,   1.0,   1.25,  1.5,   2.0,   2.5,   3.0,   4.0,   5.0   };
+	static const double PJLX[] = { 0.067, 0.059, 0.053, 0.049, 0.045, 0.039, 0.036, 0.032, 0.029, 0.028, 0.026, 0.025 };
+	static const int N = 12;
+	if (k <= K[0])     return PJLX[0];
+	if (k >= K[N - 1]) return PJLX[N - 1];
+	for (int i = 0; i < N - 1; ++i) {
+		if (k <= K[i + 1]) {
+			double t = (k - K[i]) / (K[i + 1] - K[i]);
+			return PJLX[i] + t * (PJLX[i + 1] - PJLX[i]);
+		}
+	}
+	return PJLX[N - 1];
+}
+
+
+/*! Returns default day groupings based on RowAnnualUsageDays from norm data.
 	First set = active days, second set = inactive days.
 	- 365: single group Mon-Sun          — 24/7 buildings (hospitals, hotels, data centers)
 	- 300: Mon-Sat + Sun                 — businesses open on Saturdays
@@ -136,6 +157,7 @@ IC18599MainWindow::IC18599MainWindow(QWidget *parent) :
 	connect(m_ui->actionExportPDF, &QAction::triggered, this, &IC18599MainWindow::onExportPDFReport);
 	connect(m_ui->actionLoadCSV, &QAction::triggered, this, &IC18599MainWindow::onLoadCSV);
 	connect(m_ui->actionQuit, &QAction::triggered, this, &IC18599MainWindow::onQuit);
+	connect(m_ui->actionLanguage, &QAction::triggered, this, &IC18599MainWindow::onLanguageSettings);
 
 	// Status bar
 	statusBar()->showMessage(tr("Ready. Please load a CSV file with norm data."));
@@ -428,6 +450,20 @@ void IC18599MainWindow::onQuit() {
 }
 
 
+void IC18599MainWindow::onLanguageSettings() {
+	IC18599SettingsDialog dlg(this);
+	if (dlg.exec() == QDialog::Accepted) {
+		QString newLang = dlg.selectedLangId();
+		QString currentLang = QtExt::LanguageHandler::langId();
+		if (newLang != currentLang) {
+			QtExt::LanguageHandler::setLangId(newLang);
+			QMessageBox::information(this, tr("Language Changed"),
+				tr("The language has been changed. Please restart the application for the change to take effect."));
+		}
+	}
+}
+
+
 void IC18599MainWindow::closeEvent(QCloseEvent *event) {
 	if (maybeSave())
 		event->accept();
@@ -472,21 +508,21 @@ void IC18599MainWindow::loadProfileDataToWidgets(const QString &profileName) {
 
 	if (isNew) {
 		// Determine day template from norm data
-		int usageDays = (int)m_ui->m_normDataWidget->getProfileValue(
-			profileName, QString::fromUtf8("jährliche Nutzungszeit"));
+		int usageDays = (int)m_ui->m_normDataWidget->getProfileValueByRow(
+			profileName, RowAnnualUsageDays);
 		auto tmpl = defaultDayTemplate(usageDays);
 
 		// Parse daily start/end times
-		QString startStr = m_ui->m_normDataWidget->getProfileString(
-			profileName, QString::fromUtf8("tägliche Nutzungszeit Start"));
-		QString endStr = m_ui->m_normDataWidget->getProfileString(
-			profileName, QString::fromUtf8("tägliche Nutzungszeit Ende"));
+		QString startStr = m_ui->m_normDataWidget->getProfileStringByRow(
+			profileName, RowDailyUsageStart);
+		QString endStr = m_ui->m_normDataWidget->getProfileStringByRow(
+			profileName, RowDailyUsageEnd);
 		int startHour = parseHour(startStr);
 		int endHour = parseHour(endStr);
 
 		// Activity norm value for person channel 1
-		double activityNorm = m_ui->m_normDataWidget->getProfileValue(
-			profileName, QString::fromUtf8("Aktivität Personen (sensible)"));
+		double activityNorm = m_ui->m_normDataWidget->getProfileValueByRow(
+			profileName, RowPersonActivitySensible);
 		if (activityNorm <= 0) activityNorm = 80.0;  // fallback
 
 		// Check for TSV distribution data
@@ -589,12 +625,12 @@ void IC18599MainWindow::loadProfileDataToWidgets(const QString &profileName) {
 		}
 
 		// Read norm setpoints for heating/cooling
-		double heatingSetpoint = m_ui->m_normDataWidget->getProfileValue(
-			profileName, QString::fromUtf8("Raum-Solltemperatur Heizung"));
-		double coolingSetpoint = m_ui->m_normDataWidget->getProfileValue(
-			profileName, QString::fromUtf8("Raum-Solltemperatur Kühlung"));
-		double tempReduction = m_ui->m_normDataWidget->getProfileValue(
-			profileName, QString::fromUtf8("Temperaturabsenkung reduzierter Betrieb"));
+		double heatingSetpoint = m_ui->m_normDataWidget->getProfileValueByRow(
+			profileName, RowHeatingSetpoint);
+		double coolingSetpoint = m_ui->m_normDataWidget->getProfileValueByRow(
+			profileName, RowCoolingSetpoint);
+		double tempReduction = m_ui->m_normDataWidget->getProfileValueByRow(
+			profileName, RowTempReduction);
 		if (heatingSetpoint <= 0) heatingSetpoint = 21.0;  // fallback
 		if (coolingSetpoint <= 0) coolingSetpoint = 24.0;
 		double heatingReduced = heatingSetpoint - tempReduction;
@@ -681,42 +717,81 @@ void IC18599MainWindow::recalculateResults() {
 		return;
 
 	// --- Persons ---
-	double fullUseHoursPerson = m_ui->m_normDataWidget->getProfileValue(prof, "Vollnutzungstunden Personen");
-	double areaPerPerson = m_ui->m_normDataWidget->getProfileValue(prof, QString::fromUtf8("maximale Belegungsdichte"));
+	double fullUseHoursPerson = m_ui->m_normDataWidget->getProfileValueByRow(prof, RowFullUseHoursPersons);
+	double areaPerPerson = m_ui->m_normDataWidget->getProfileValueByRow(prof, RowMaxOccupancyDensity);
 	if (areaPerPerson <= 0) areaPerPerson = 1.0;  // avoid division by zero
 
 	std::vector<double> personWeek = m_ui->m_personScheduleWidget->weekValues(0); // occupancy 0-100
 	std::vector<double> activityWeek = m_ui->m_personScheduleWidget->weekValues(1); // activity W/Pers
-	double sumPerson = 0;
-	for (double v : personWeek) sumPerson += v / 100.0;
-	double normFactorPerson = (sumPerson > 0) ? fullUseHoursPerson / sumPerson : 0;
+
+	// Compute per-group norm factor: fullUseHours / dailySum for each group's 24h profile
+	std::vector<double> personDayNormFactor(7, 0.0);
+	for (const DailyCycleGroup &grp : m_ui->m_personScheduleWidget->groups()) {
+		double dailySum = 0;
+		if (grp.channelCount() > 0) {
+			for (int h = 0; h < 24; ++h)
+				dailySum += grp.m_values[0][(size_t)h] / 100.0;
+		}
+		double nf = (dailySum > 0) ? fullUseHoursPerson / dailySum : 0;
+		for (int d : grp.m_days)
+			personDayNormFactor[(size_t)d] = nf;
+	}
 
 	// Result: normalized occupancy * activity / area → [W/m²]
 	std::vector<double> personHeatGain(168);
-	for (int i = 0; i < 168; ++i)
-		personHeatGain[i] = (personWeek[i] / 100.0) * normFactorPerson * activityWeek[i] / areaPerPerson;
+	for (int i = 0; i < 168; ++i) {
+		int day = i / 24;
+		personHeatGain[(size_t)i] = (personWeek[(size_t)i] / 100.0) * personDayNormFactor[(size_t)day]
+			* activityWeek[(size_t)i] / areaPerPerson;
+	}
 	m_ui->m_personScheduleWidget->setResultData(0, personHeatGain,
 		tr("Person Heat Gain"), QString::fromUtf8("[W/m²]"), QColor(80, 150, 80));
 
 	// --- Equipment ---
-	double equipPower = m_ui->m_normDataWidget->getProfileValue(prof, QString::fromUtf8("Geräteleistung"));
+	double fullUseHoursEquip = m_ui->m_normDataWidget->getProfileValueByRow(prof, RowFullUseHoursEquipment);
+	double equipPower = m_ui->m_normDataWidget->getProfileValueByRow(prof, RowEquipmentPower);
 
 	std::vector<double> equipWeek = m_ui->m_equipmentScheduleWidget->weekValues();
 
-	// Result: schedule fraction * equipment power / area → [W/m²]
+	// Compute per-group norm factor for equipment
+	std::vector<double> equipDayNormFactor(7, 0.0);
+	for (const DailyCycleGroup &grp : m_ui->m_equipmentScheduleWidget->groups()) {
+		double dailySum = 0;
+		if (grp.channelCount() > 0) {
+			for (int h = 0; h < 24; ++h)
+				dailySum += grp.m_values[0][(size_t)h] / 100.0;
+		}
+		double nf = (dailySum > 0) ? fullUseHoursEquip / dailySum : 0;
+		for (int d : grp.m_days)
+			equipDayNormFactor[(size_t)d] = nf;
+	}
+
+	// Result: normalized schedule fraction * equipment power / area → [W/m²]
 	std::vector<double> equipHeatGain(168);
-	for (int i = 0; i < 168; ++i)
-		equipHeatGain[i] = (equipWeek[i] / 100.0) * equipPower / areaPerPerson;
+	for (int i = 0; i < 168; ++i) {
+		int day = i / 24;
+		equipHeatGain[(size_t)i] = (equipWeek[(size_t)i] / 100.0) * equipDayNormFactor[(size_t)day]
+			* equipPower / areaPerPerson;
+	}
 	m_ui->m_equipmentScheduleWidget->setResultData(0, equipHeatGain,
 		tr("Equipment Heat Gain"), QString::fromUtf8("[W/m²]"), QColor(180, 140, 80));
 
 	// --- Lighting ---
+	double maintIlluminance = m_ui->m_normDataWidget->getProfileValueByRow(prof, RowMaintainedIlluminance);
+	double kA  = m_ui->m_normDataWidget->getProfileValueByRow(prof, RowReductionFactorKA);
+	double kVB = m_ui->m_normDataWidget->getProfileValueByRow(prof, RowAdjustmentFactorKVB);
+	double roomK = m_ui->m_normDataWidget->getProfileValueByRow(prof, RowRoomIndexK);
+	double pjlx = pjlxFromRoomIndex(roomK);
+
+	// p_j,lx * E_m * (0.8/0.67) * kA * 0.53 * kVB → installed lighting power [W/m²]
+	double lightPowerDensity = pjlx * maintIlluminance * (0.8 / 0.67) * kA * 0.53 * kVB;
+
 	std::vector<double> lightWeek = m_ui->m_lightingScheduleWidget->weekValues();
-	std::vector<double> lightFraction(168);
+	std::vector<double> lightResult(168);
 	for (int i = 0; i < 168; ++i)
-		lightFraction[i] = lightWeek[i] / 100.0;
-	m_ui->m_lightingScheduleWidget->setResultData(0, lightFraction,
-		tr("Availability (fraction)"), "[-]", QColor(200, 180, 50));
+		lightResult[(size_t)i] = (lightWeek[(size_t)i] / 100.0) * lightPowerDensity;
+	m_ui->m_lightingScheduleWidget->setResultData(0, lightResult,
+		tr("Lighting Power"), QString::fromUtf8("[W/m²]"), QColor(200, 180, 50));
 }
 
 
@@ -742,16 +817,26 @@ bool IC18599MainWindow::loadDistributionTSV(const QString &tsvPath) {
 	const QStringList &header = rows[0];
 	int numProfiles = header.size() - 1;
 
-	// Find section start rows by marker text
+	// Find section start rows by structure: a row with text in col 0 and all other cols empty.
+	// First such marker = person section, second = equipment section.
 	int personSection = -1, equipSection = -1;
 	for (int r = 1; r < rows.size(); ++r) {
-		if (rows[r].isEmpty())
+		if (rows[r].isEmpty() || rows[r][0].trimmed().isEmpty())
 			continue;
-		const QString &marker = rows[r][0];
-		if (marker.contains("Personenzeitplan"))
-			personSection = r;
-		else if (marker.contains("zeitplan") && marker.contains("Ger"))
-			equipSection = r;
+		// Check if all columns beyond col 0 are empty
+		bool allEmpty = true;
+		for (int c = 1; c < rows[r].size(); ++c) {
+			if (!rows[r][c].trimmed().isEmpty()) {
+				allEmpty = false;
+				break;
+			}
+		}
+		if (allEmpty) {
+			if (personSection < 0)
+				personSection = r;
+			else if (equipSection < 0)
+				equipSection = r;
+		}
 	}
 
 	if (personSection < 0 || equipSection < 0)

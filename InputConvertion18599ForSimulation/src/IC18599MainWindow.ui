@@ -121,7 +121,14 @@
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>&amp;Settings</string>
+    </property>
+    <addaction name="actionLanguage"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuSettings"/>
   </widget>
   <widget class="QToolBar" name="m_toolBar">
    <property name="windowTitle">
@@ -186,6 +193,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionLanguage">
+   <property name="text">
+    <string>&amp;Language...</string>
    </property>
   </action>
  </widget>

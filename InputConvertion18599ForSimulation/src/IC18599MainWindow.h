@@ -38,6 +38,7 @@ private slots:
 	void onProfileChanged(const QString &profileName);
 	void onScheduleModified();
 	void onQuit();
+	void onLanguageSettings();
 
 private:
 	void populateProfileComboBox();

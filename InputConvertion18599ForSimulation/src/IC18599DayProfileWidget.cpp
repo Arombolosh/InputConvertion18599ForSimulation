@@ -1,9 +1,16 @@
 #include "IC18599DayProfileWidget.h"
 
+#include <QCoreApplication>
 #include <QPainter>
 #include <QMouseEvent>
 
-static const char* DAY_NAMES[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+static QString dayName(int d) {
+	static const char * const DAYS[] = {
+		QT_TR_NOOP("Mon"), QT_TR_NOOP("Tue"), QT_TR_NOOP("Wed"),
+		QT_TR_NOOP("Thu"), QT_TR_NOOP("Fri"), QT_TR_NOOP("Sat"), QT_TR_NOOP("Sun")
+	};
+	return QCoreApplication::translate("DayNames", DAYS[d]);
+}
 
 IC18599DayProfileWidget::IC18599DayProfileWidget(QWidget *parent) :
 	QWidget(parent),
@@ -166,7 +173,7 @@ void IC18599DayProfileWidget::paintChart(QPainter *p, const QRect &rect, bool sh
 	for (int d = 0; d < 7; ++d) {
 		double x = pa.left() + d * dayW;
 		p->drawText(QRectF(x, pa.bottom() + (int)(2 * sx), dayW, (int)(20 * sx)),
-					Qt::AlignCenter, DAY_NAMES[d]);
+					Qt::AlignCenter, dayName(d));
 	}
 
 	// Frame

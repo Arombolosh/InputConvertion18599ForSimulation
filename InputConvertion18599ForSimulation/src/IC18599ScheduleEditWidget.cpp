@@ -4,6 +4,7 @@
 
 #include <QAbstractItemDelegate>
 #include <QCheckBox>
+#include <QCoreApplication>
 #include <QTableWidget>
 
 IC18599ScheduleEditWidget::IC18599ScheduleEditWidget(QWidget *parent) :
@@ -408,12 +409,15 @@ void IC18599ScheduleEditWidget::updateGroupLabel() {
 	m_ui->m_btnAdd->setEnabled(!unassignedDays().empty() || m_groups.size() < 7);
 
 	// Validation: check for unassigned days
-	static const char * DAY_NAMES[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+	static const char * const DAY_KEYS[] = {
+		QT_TR_NOOP("Mon"), QT_TR_NOOP("Tue"), QT_TR_NOOP("Wed"),
+		QT_TR_NOOP("Thu"), QT_TR_NOOP("Fri"), QT_TR_NOOP("Sat"), QT_TR_NOOP("Sun")
+	};
 	std::vector<int> ua = unassignedDays();
 	if (!ua.empty()) {
 		QStringList dayNames;
 		for (int d : ua)
-			dayNames << DAY_NAMES[d];
+			dayNames << QCoreApplication::translate("DayNames", DAY_KEYS[d]);
 		m_ui->m_validLabel->setText(tr("Warning: %1 not assigned to any group").arg(dayNames.join(", ")));
 		m_ui->m_validLabel->setStyleSheet("color: red; font-weight: bold;");
 	}

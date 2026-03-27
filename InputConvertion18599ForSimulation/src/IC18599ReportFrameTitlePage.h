@@ -21,7 +21,6 @@ public:
 private:
 	QtExt::TextFrame		m_title;
 	QtExt::TextFrame		m_subtitle;
-	QtExt::Table			m_infoTable;
 	QtExt::TextFrame		m_tocHeading;
 	QtExt::Table			m_tocTable;
 	std::vector<QString>	m_profileNames;

@@ -10,9 +10,17 @@
 #include <IBK_Unit.h>
 #include <IBK_UnitVector.h>
 
+#include <QCoreApplication>
+
 #include <algorithm>
 
-static const char* DAY_NAMES[] = {"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"};
+static QString dayNameShort(int d) {
+	static const char * const DAYS[] = {
+		QT_TR_NOOP("Mo"), QT_TR_NOOP("Tu"), QT_TR_NOOP("We"),
+		QT_TR_NOOP("Th"), QT_TR_NOOP("Fr"), QT_TR_NOOP("Sa"), QT_TR_NOOP("Su")
+	};
+	return QCoreApplication::translate("DayNamesShort", DAYS[d]);
+}
 
 
 
@@ -42,11 +50,11 @@ QString IC18599ReportFrameProfilePage::dayGroupLabel(const std::set<int> &days) 
 	}
 
 	if (consecutive && sorted.size() > 2)
-		return QString("%1 - %2").arg(DAY_NAMES[sorted.front()]).arg(DAY_NAMES[sorted.back()]);
+		return QString("%1 - %2").arg(dayNameShort(sorted.front())).arg(dayNameShort(sorted.back()));
 
 	QStringList names;
 	for (int d : sorted)
-		names.append(DAY_NAMES[d]);
+		names.append(dayNameShort(d));
 	return names.join(", ");
 }
 
