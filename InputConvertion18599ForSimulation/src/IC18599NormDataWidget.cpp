@@ -42,7 +42,7 @@ bool IC18599NormDataWidget::loadCSV(const QString &fname) {
 
 	while (!in.atEnd()) {
 		QString line = in.readLine();
-		QStringList fields = line.split(';');
+		QStringList fields = line.split('\t');
 		if (fields.size() > maxCols)
 			maxCols = fields.size();
 		data.append(fields);

@@ -31,7 +31,7 @@ class IC18599NormDataWidget : public QWidget {
 public:
 	explicit IC18599NormDataWidget(QWidget *parent = nullptr);
 
-	/*! Loads norm data from a semicolon-separated CSV file.
+	/*! Loads norm data from a tab-separated CSV file.
 		Returns true on success. */
 	bool loadCSV(const QString &fname);
 

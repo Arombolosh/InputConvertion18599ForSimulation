@@ -50,7 +50,9 @@ void IC18599ReportFrameToC::configureTable() {
 
 	int row = 1;
 	int profileCounter = 0;
-	int pageOffset = 2;
+
+	// Title page = 1, ToC = 2 pages (fits up to ~80 entries)
+	int pageOffset = 3;
 
 	if (hasSections) {
 		m_table.setCellText(0, row, BOLD(tr("Residential Buildings")), Qt::AlignLeft);

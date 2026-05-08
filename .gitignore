@@ -5,3 +5,7 @@
 externals/lib/
 /data/UserProfileReport.pdf
 /data/test.pdf
+/data/de/old/DIN18599_Nutzungsprofile.csv
+/data/de/old/PersonAndEquipmentLoadDistribution.tsv
+/data/de/old2/DIN18599_Nutzungsprofile.csv
+/data/de/old2/PersonAndEquipmentLoadDistribution.tsv
