@@ -15,12 +15,14 @@ public:
 						  const std::vector<QString> &profileNames,
 						  int nonResidentialStartIndex);
 
+	void update(QPaintDevice *paintDevice, double width) override;
 	void configureHeading() override;
 	void configureTable() override;
 
 private:
 	std::vector<QString>	m_profileNames;
 	int						m_nonResStartIdx;
+	double					m_tableWidth = 0;
 };
 
 #endif // IC18599ReportFrameToCH
