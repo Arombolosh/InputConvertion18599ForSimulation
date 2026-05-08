@@ -2,6 +2,7 @@
 
 #include "IC18599Project.h"
 #include "IC18599ReportFrameTitlePage.h"
+#include "IC18599ReportFrameToC.h"
 #include "IC18599ReportFrameProfilePage.h"
 
 IC18599Report::IC18599Report(IC18599ReportSettings *reportSettings) :
@@ -28,8 +29,11 @@ void IC18599Report::setFrames() {
 	for (const auto &p : m_profiles)
 		profileNames.push_back(p.name);
 
-	registerFrame(new IC18599ReportFrameTitlePage(this, m_textDocument, profileNames),
+	registerFrame(new IC18599ReportFrameTitlePage(this, m_textDocument),
 				  IC18599ReportSettings::FrameTitlePage);
+
+	registerFrame(new IC18599ReportFrameToC(this, m_textDocument, profileNames, m_nonResStartIdx),
+				  IC18599ReportSettings::FrameToC);
 
 	// Two pages per profile: InternalLoads + Setpoints
 	for (const auto &profile : m_profiles) {

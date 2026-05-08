@@ -36,6 +36,7 @@ public:
 
 	QString								m_csvFilePath;		///< CSV file path (relative to project file)
 	QStringList							m_profileNames;		///< Profile names from CSV header
+	int									m_nonResStartIdx = 0;	///< Index where non-residential profiles begin
 	QString								m_currentProfile;	///< Currently selected profile
 	QMap<QString, ProfileScheduleData>	m_profiles;			///< Edited profile data
 	bool								m_modified = false;

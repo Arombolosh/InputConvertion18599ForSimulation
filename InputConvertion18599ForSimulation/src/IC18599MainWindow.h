@@ -37,6 +37,7 @@ private slots:
 	void onExportVicus();
 	void onExportVicusDbFiles();
 	void onExportEnergyPlus();
+	void onExportCSV();
 	void onLoadCSV();
 	void onProfileChanged(const QString &profileName);
 	void onScheduleModified();

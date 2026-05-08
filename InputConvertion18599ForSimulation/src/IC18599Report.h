@@ -21,10 +21,14 @@ public:
 	/*! Sets profile data for multi-profile report. */
 	void setProfileData(const std::vector<ReportProfileData> &profiles);
 
+	/*! Sets the index where non-residential profiles begin. */
+	void setNonResidentialStartIndex(int idx) { m_nonResStartIdx = idx; }
+
 	IC18599Project				*m_project = nullptr;
 
 private:
 	std::vector<ReportProfileData>	m_profiles;
+	int								m_nonResStartIdx = 0;
 };
 
 #endif // IC18599ReportH

@@ -39,6 +39,7 @@ SOURCES += \
 	src/IC18599Project.cpp \
 	src/IC18599Report.cpp \
 	src/IC18599ReportFrameTitlePage.cpp \
+	src/IC18599ReportFrameToC.cpp \
 	src/IC18599ReportFrameProfilePage.cpp \
 	src/IC18599ReportChartItem.cpp \
 	src/IC18599ExportDialog.cpp \
@@ -55,6 +56,7 @@ HEADERS += \
 	src/IC18599ReportSettings.h \
 	src/IC18599Report.h \
 	src/IC18599ReportFrameTitlePage.h \
+	src/IC18599ReportFrameToC.h \
 	src/IC18599ReportFrameProfilePage.h \
 	src/IC18599ReportChartItem.h \
 	src/IC18599ExportDialog.h \

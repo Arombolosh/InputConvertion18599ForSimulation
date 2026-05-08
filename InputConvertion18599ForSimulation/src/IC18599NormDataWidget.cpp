@@ -143,13 +143,18 @@ bool IC18599NormDataWidget::loadCSV(const QString &fname) {
 	// Resize first column (parameter names) to content
 	m_tableWidget->resizeColumnToContents(0);
 
-	// Set a reasonable width for profile columns
+	// Set a reasonable width for profile columns; narrow separator columns
 	for (int c = 1; c < numCols; ++c) {
-		m_tableWidget->setColumnWidth(c, 160);
+		QString hdr = (c < headerRow.size()) ? headerRow[c].trimmed() : QString();
+		if (hdr.isEmpty())
+			m_tableWidget->setColumnWidth(c, 10);  // separator column
+		else
+			m_tableWidget->setColumnWidth(c, 160);
 	}
 
+	int profileCount = profileNames().size();
 	m_infoLabel->setText(tr("DIN V 18599-10: %1 parameters, %2 usage profiles")
-		.arg(numRows).arg(numCols - 1));
+		.arg(numRows).arg(profileCount));
 
 	return true;
 }
@@ -168,6 +173,21 @@ QStringList IC18599NormDataWidget::profileNames() const {
 			names << name;
 	}
 	return names;
+}
+
+
+int IC18599NormDataWidget::nonResidentialStartIndex() const {
+	if (m_rawData.isEmpty())
+		return 0;
+	const QStringList &header = m_rawData.first();
+	int profileIdx = 0;
+	for (int c = 1; c < header.size(); ++c) {
+		QString name = header[c].trimmed();
+		if (name.isEmpty())
+			return profileIdx;  // separator found
+		++profileIdx;
+	}
+	return 0;  // no separator found
 }
 
 

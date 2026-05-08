@@ -7,7 +7,8 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 
-IC18599ExportDialog::IC18599ExportDialog(const QStringList &profileNames, QWidget *parent) :
+IC18599ExportDialog::IC18599ExportDialog(const QStringList &profileNames, int nonResidentialStartIndex,
+										 QWidget *parent) :
 	QDialog(parent)
 {
 	setWindowTitle(tr("Export PDF Report"));
@@ -23,8 +24,19 @@ IC18599ExportDialog::IC18599ExportDialog(const QStringList &profileNames, QWidge
 	auto *scrollWidget = new QWidget;
 	auto *scrollLayout = new QVBoxLayout(scrollWidget);
 
-	for (const QString &name : profileNames) {
-		auto *cb = new QCheckBox(name);
+	bool hasSections = (nonResidentialStartIndex > 0 && nonResidentialStartIndex < profileNames.size());
+	if (hasSections) {
+		auto *resLabel = new QLabel(QString("<b>%1</b>").arg(tr("Residential Buildings")));
+		scrollLayout->addWidget(resLabel);
+	}
+
+	for (int i = 0; i < profileNames.size(); ++i) {
+		if (hasSections && i == nonResidentialStartIndex) {
+			auto *nonResLabel = new QLabel(QString("<b>%1</b>").arg(tr("Non-Residential Buildings")));
+			nonResLabel->setContentsMargins(0, 8, 0, 0);
+			scrollLayout->addWidget(nonResLabel);
+		}
+		auto *cb = new QCheckBox(profileNames[i]);
 		cb->setChecked(true);
 		scrollLayout->addWidget(cb);
 		m_checkBoxes.push_back(cb);

@@ -11,7 +11,8 @@ class QCheckBox;
 class IC18599ExportDialog : public QDialog {
 	Q_OBJECT
 public:
-	explicit IC18599ExportDialog(const QStringList &profileNames, QWidget *parent = nullptr);
+	explicit IC18599ExportDialog(const QStringList &profileNames, int nonResidentialStartIndex = 0,
+							QWidget *parent = nullptr);
 
 	/*! Returns the list of profile names that were checked by the user. */
 	QStringList selectedProfiles() const;

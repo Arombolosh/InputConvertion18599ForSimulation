@@ -14,6 +14,7 @@
 
 #include <QCloseEvent>
 #include <QComboBox>
+#include <QListView>
 #include <QFile>
 #include <QLabel>
 #include <QFileDialog>
@@ -112,6 +113,10 @@ IC18599MainWindow::IC18599MainWindow(QWidget *parent) :
 	m_ui->m_toolBar->addWidget(new QLabel(tr("Profile: "), this));
 	m_profileComboBox = new QComboBox(this);
 	m_profileComboBox->setMinimumWidth(250);
+	m_profileComboBox->setMaxVisibleItems(20);
+	auto *popupView = new QListView(m_profileComboBox);
+	popupView->setAlternatingRowColors(true);
+	m_profileComboBox->setView(popupView);
 	m_profileComboBox->setEnabled(false);
 	m_ui->m_toolBar->addWidget(m_profileComboBox);
 
@@ -137,8 +142,8 @@ IC18599MainWindow::IC18599MainWindow(QWidget *parent) :
 	m_ui->m_lightingScheduleWidget->setResultChartCount(1);
 
 	// --- Connections ---
-	connect(m_profileComboBox, &QComboBox::currentTextChanged,
-			this, &IC18599MainWindow::onProfileChanged);
+	connect(m_profileComboBox, &QComboBox::activated,
+			this, [this](int) { onProfileChanged(m_profileComboBox->currentText()); });
 
 	connect(m_ui->m_personScheduleWidget, &IC18599ScheduleEditWidget::valuesChanged,
 			this, &IC18599MainWindow::onScheduleModified);
@@ -160,6 +165,7 @@ IC18599MainWindow::IC18599MainWindow(QWidget *parent) :
 	connect(m_ui->actionExportVicus, &QAction::triggered, this, &IC18599MainWindow::onExportVicus);
 	connect(m_ui->actionExportVicusDB, &QAction::triggered, this, &IC18599MainWindow::onExportVicusDbFiles);
 	connect(m_ui->actionExportEnergyPlus, &QAction::triggered, this, &IC18599MainWindow::onExportEnergyPlus);
+	connect(m_ui->actionExportCSV, &QAction::triggered, this, &IC18599MainWindow::onExportCSV);
 	connect(m_ui->actionLoadCSV, &QAction::triggered, this, &IC18599MainWindow::onLoadCSV);
 	connect(m_ui->actionQuit, &QAction::triggered, this, &IC18599MainWindow::onQuit);
 	connect(m_ui->actionLanguage, &QAction::triggered, this, &IC18599MainWindow::onLanguageSettings);
@@ -224,6 +230,7 @@ void IC18599MainWindow::onOpenProject() {
 	}
 	else {
 		m_project.m_profileNames = m_ui->m_normDataWidget->profileNames();
+		m_project.m_nonResStartIdx = m_ui->m_normDataWidget->nonResidentialStartIndex();
 		m_ui->m_logWidget->appendPlainText(tr("Norm data loaded: %1").arg(csvPath));
 
 		// Try to load hourly distribution TSV from same directory
@@ -303,7 +310,7 @@ void IC18599MainWindow::onExportPDFReport() {
 	for (const QString &name : m_project.m_profileNames)
 		profileNames.append(name);
 
-	IC18599ExportDialog dlg(profileNames, this);
+	IC18599ExportDialog dlg(profileNames, m_project.m_nonResStartIdx, this);
 	if (dlg.exec() != QDialog::Accepted)
 		return;
 
@@ -371,6 +378,17 @@ void IC18599MainWindow::onExportPDFReport() {
 		recalculateResults();
 	}
 
+	// Compute section boundary for selected profiles
+	int nonResStartIdx = 0;
+	if (m_project.m_nonResStartIdx > 0) {
+		// Count how many selected profiles are residential (appear before the separator)
+		QStringList resProfiles = m_project.m_profileNames.mid(0, m_project.m_nonResStartIdx);
+		for (const QString &name : selected) {
+			if (resProfiles.contains(name))
+				++nonResStartIdx;
+		}
+	}
+
 	// Generate PDF report
 	IC18599ReportSettings settings;
 	IC18599Report report(&settings);
@@ -378,6 +396,7 @@ void IC18599MainWindow::onExportPDFReport() {
 	QtExt::ReportData1<IC18599Project> data(&m_project);
 	report.set(&data);
 	report.setProfileData(profileDataVec);
+	report.setNonResidentialStartIndex(nonResStartIdx);
 	report.setFrames();
 
 	QPrinter printer(QPrinter::HighResolution);
@@ -406,7 +425,7 @@ void IC18599MainWindow::onExportVicus() {
 	for (const QString &name : m_project.m_profileNames)
 		profileNames.append(name);
 
-	IC18599ExportDialog dlg(profileNames, this);
+	IC18599ExportDialog dlg(profileNames, m_project.m_nonResStartIdx, this);
 	if (dlg.exec() != QDialog::Accepted)
 		return;
 
@@ -622,6 +641,151 @@ void IC18599MainWindow::onExportEnergyPlus() {
 }
 
 
+/*! Returns a short day-group label like "Mo-Fr" from a set of IC18599 day indices. */
+static QString csvDayGroupLabel(const std::set<int> &days) {
+	static const char * const NAMES[] = {"Mo","Tu","We","Th","Fr","Sa","Su"};
+	if (days.empty())
+		return QString();
+	std::vector<int> sorted(days.begin(), days.end());
+	bool consecutive = true;
+	for (size_t i = 1; i < sorted.size(); ++i) {
+		if (sorted[i] != sorted[i-1] + 1) {
+			consecutive = false;
+			break;
+		}
+	}
+	if (consecutive && sorted.size() > 2)
+		return QString("%1-%2").arg(NAMES[sorted.front()]).arg(NAMES[sorted.back()]);
+	QStringList names;
+	for (int d : sorted)
+		names.append(NAMES[d]);
+	return names.join("_");
+}
+
+
+void IC18599MainWindow::onExportCSV() {
+	if (m_project.m_profileNames.empty()) {
+		QMessageBox::warning(this, tr("Export"), tr("No profiles available. Please load a CSV file first."));
+		return;
+	}
+
+	// Show profile selection dialog
+	QStringList profileNames;
+	for (const QString &name : m_project.m_profileNames)
+		profileNames.append(name);
+
+	IC18599ExportDialog dlg(profileNames, m_project.m_nonResStartIdx, this);
+	if (dlg.exec() != QDialog::Accepted)
+		return;
+
+	QStringList selected = dlg.selectedProfiles();
+	if (selected.isEmpty())
+		return;
+
+	// Ask for output directory
+	QString outputDir = QFileDialog::getExistingDirectory(this,
+		tr("Select Output Directory for CSV Tables"));
+	if (outputDir.isEmpty())
+		return;
+
+	// Store current profile data before switching
+	storeCurrentProfileData();
+	QString originalProfile = m_project.m_currentProfile;
+
+	int exportedCount = 0;
+	for (const QString &profName : selected) {
+		// Load profile and recalculate
+		loadProfileDataToWidgets(profName);
+		m_project.m_currentProfile = profName;
+		recalculateResults();
+
+		// Get result week values (168 values each)
+		IC18599DayProfileWidget *personResult = m_ui->m_personScheduleWidget->resultChart(0);
+		std::vector<double> personWeek = personResult ? personResult->weekValues() : std::vector<double>(168, 0.0);
+
+		IC18599DayProfileWidget *equipResult = m_ui->m_equipmentScheduleWidget->resultChart(0);
+		std::vector<double> equipWeek = equipResult ? equipResult->weekValues() : std::vector<double>(168, 0.0);
+
+		IC18599DayProfileWidget *lightResult = m_ui->m_lightingScheduleWidget->resultChart(0);
+		std::vector<double> lightWeek = lightResult ? lightResult->weekValues() : std::vector<double>(168, 0.0);
+
+		std::vector<double> heatingWeek = m_ui->m_heatingScheduleWidget->weekValues();
+		std::vector<double> coolingWeek = m_ui->m_coolingScheduleWidget->weekValues();
+
+		// Get day groups from person schedule (defines the day grouping for the table)
+		const std::vector<DailyCycleGroup> &groups = m_ui->m_personScheduleWidget->groups();
+
+		// Build sanitized file name from profile name
+		QString safeName = profName;
+		safeName.replace(' ', '_');
+		safeName.replace('/', '_');
+		safeName.replace('\\', '_');
+		safeName.remove(QChar(0x00E4)); // remove problematic chars, replace Umlauts
+		// Simple Umlaut replacement for filenames
+		safeName.replace(QStringLiteral("\u00e4"), "ae");
+		safeName.replace(QStringLiteral("\u00f6"), "oe");
+		safeName.replace(QStringLiteral("\u00fc"), "ue");
+		safeName.replace(QStringLiteral("\u00c4"), "Ae");
+		safeName.replace(QStringLiteral("\u00d6"), "Oe");
+		safeName.replace(QStringLiteral("\u00dc"), "Ue");
+		safeName.replace(QStringLiteral("\u00df"), "ss");
+
+		// Write one CSV per day group
+		for (size_t g = 0; g < groups.size(); ++g) {
+			const DailyCycleGroup &grp = groups[g];
+			if (grp.m_days.empty())
+				continue;
+
+			int repDay = *grp.m_days.begin();
+			QString groupLabel = csvDayGroupLabel(grp.m_days);
+
+			// Build file name: ProfileName_DayGroup.csv
+			QString fileName;
+			if (groups.size() == 1)
+				fileName = QString("%1/%2.csv").arg(outputDir, safeName);
+			else
+				fileName = QString("%1/%2_%3.csv").arg(outputDir, safeName, groupLabel);
+
+			QFile file(fileName);
+			if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+				continue;
+
+			QTextStream out(&file);
+			out.setEncoding(QStringConverter::Utf8);
+
+			// Header
+			out << "Time;Person [W/m2];Equipment [W/m2];Lighting [W/m2];Heating [°C];Cooling [°C]\n";
+
+			// 24 hourly rows
+			for (int h = 0; h < 24; ++h) {
+				int idx = repDay * 24 + h;
+				out << QString("%1:00-%2:00").arg(h, 2, 10, QChar('0')).arg(h + 1, 2, 10, QChar('0'))
+					<< ";" << QString::number(personWeek[(size_t)idx], 'f', 2)
+					<< ";" << QString::number(equipWeek[(size_t)idx], 'f', 2)
+					<< ";" << QString::number(lightWeek[(size_t)idx], 'f', 2)
+					<< ";" << QString::number(heatingWeek[(size_t)idx], 'f', 1)
+					<< ";" << QString::number(coolingWeek[(size_t)idx], 'f', 1)
+					<< "\n";
+			}
+
+			file.close();
+			++exportedCount;
+		}
+	}
+
+	// Restore original profile
+	if (!originalProfile.isEmpty()) {
+		loadProfileDataToWidgets(originalProfile);
+		m_project.m_currentProfile = originalProfile;
+		recalculateResults();
+	}
+
+	m_ui->m_logWidget->appendPlainText(tr("CSV tables exported to: %1 (%2 files)")
+		.arg(outputDir).arg(exportedCount));
+	statusBar()->showMessage(tr("CSV exported: %1").arg(outputDir));
+}
+
+
 void IC18599MainWindow::onLoadCSV() {
 	QString fname = QFileDialog::getOpenFileName(this,
 		tr("Load DIN 18599 Norm Data"),
@@ -634,6 +798,7 @@ void IC18599MainWindow::onLoadCSV() {
 	if (ok) {
 		m_project.m_csvFilePath = fname;  // store absolute, relativize on save
 		m_project.m_profileNames = m_ui->m_normDataWidget->profileNames();
+		m_project.m_nonResStartIdx = m_ui->m_normDataWidget->nonResidentialStartIndex();
 
 		// Try to load hourly distribution TSV from same directory
 		QFileInfo csvInfo(fname);
@@ -708,8 +873,11 @@ void IC18599MainWindow::populateProfileComboBox() {
 	// Block signals to avoid triggering onProfileChanged during population
 	m_profileComboBox->blockSignals(true);
 	m_profileComboBox->clear();
-	for (const QString &name : m_project.m_profileNames)
-		m_profileComboBox->addItem(name);
+	for (int i = 0; i < m_project.m_profileNames.size(); ++i) {
+		if (i == m_project.m_nonResStartIdx && m_project.m_nonResStartIdx > 0)
+			m_profileComboBox->insertSeparator(m_profileComboBox->count());
+		m_profileComboBox->addItem(m_project.m_profileNames[i]);
+	}
 	m_profileComboBox->setEnabled(m_profileComboBox->count() > 0);
 	m_profileComboBox->blockSignals(false);
 

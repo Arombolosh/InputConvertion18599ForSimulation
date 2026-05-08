@@ -35,8 +35,13 @@ public:
 		Returns true on success. */
 	bool loadCSV(const QString &fname);
 
-	/*! Returns profile names (column headers from CSV, excluding first column). */
+	/*! Returns profile names (column headers from CSV, excluding first column and separator columns). */
 	QStringList profileNames() const;
+
+	/*! Returns the index (within profileNames()) at which non-residential profiles begin.
+		This corresponds to the first empty separator column in the CSV header.
+		Returns 0 if no separator is found (all profiles are non-residential). */
+	int nonResidentialStartIndex() const;
 
 	/*! Returns a numeric value for a given profile and data row index.
 		The dataRowIndex is 0-based relative to the first data row (after header).

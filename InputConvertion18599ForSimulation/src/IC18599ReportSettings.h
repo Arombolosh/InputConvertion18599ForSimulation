@@ -27,7 +27,8 @@ public:
 		FrameHeader = 0,
 		FrameFooter = 1,
 		FrameTitlePage = 2,
-		FrameContent = 3,
+		FrameToC = 3,
+		FrameContent = 4,
 		FrameCount
 	};
 
